@@ -1,0 +1,55 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Database
+*.db
+*.db.*
+backend/data/*.db
+backend/data/*.bak*
+backend/data/*.json
+!backend/data/china_travel.db
+!backend/data/province_data.json
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temp scripts
+*.ps1
+check_*.py
+clean_*.py
+debug_*.py
+dedup_*.py
+analyze_*.py
+crawl_*.py
+fix_*.py
+gh_search*.py
+import_*.py
+merge_*.py
+patch_*.py
+rebuild_*.py
+save_*.py
+search_*.py
+test_*.py
+update_*.py
+verify_*.py
+write_*.py
+gen_*.py
+simplify*.py
+download_*.py
+find_*.py
+get_*.py
