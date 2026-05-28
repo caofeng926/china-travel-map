@@ -223,7 +223,7 @@ function refreshMarkers(){
   if(renderTimeout)clearTimeout(renderTimeout);
   renderTimeout=setTimeout(doRefreshMarkers,150);
 }
-function doRefreshMarkers(){
+function doRefreshMarkers(){if(tripMode)return;
   isRendering=true;
   currentMarkers.forEach(function(m){m.setMap(null)});
   currentMarkers=[];
