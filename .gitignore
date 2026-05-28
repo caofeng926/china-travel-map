@@ -71,3 +71,11 @@ frontend/test_map.html
 # Temp JSON payloads
 _tmp_*.json
 push_*.py
+
+# Temp test files
+backend/srv*.txt
+backend/spawn_out.txt
+backend/test_*.txt
+backend/startup_error.log
+*.bat
+srv.log
