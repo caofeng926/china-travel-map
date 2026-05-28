@@ -67,3 +67,7 @@ backend/data/amap_4a/
 backend/data/best_food/
 backend/data/official_*.bin
 frontend/test_map.html
+
+# Temp JSON payloads
+_tmp_*.json
+push_*.py
