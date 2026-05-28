@@ -16,6 +16,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 #panel h2 .ti{font-size:15px;white-space:nowrap}
 #panel h2 .sm{font-size:10px;opacity:.8;font-weight:normal}
 #panel h2 .tg{font-size:12px;opacity:.7;display:none}
+
+#modeSwitch{display:flex;border-bottom:1px solid #e0e0e0}
+#modeSwitch button{flex:1;padding:6px;border:none;background:#f0f0f0;cursor:pointer;font-size:12px;color:#666;transition:all .2s}
+#modeSwitch button.active{background:#c0392b;color:#fff;font-weight:700}
+#modeSwitch button:first-child{border-right:1px solid #ddd}
+
 #stats{display:flex;gap:4px;padding:8px 10px}
 #stats>div{flex:1;text-align:center;background:#f5f5f5;border-radius:6px;padding:4px 0}
 #stats .n{font-size:18px;font-weight:700;color:#c0392b}
@@ -52,7 +58,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   #panel h2{padding:8px 14px;border-radius:12px 12px 0 0}
   #panel h2 .tg{display:block;font-size:16px}
   .handle-bar{width:36px;height:4px;background:#ddd;border-radius:2px;margin:6px auto 0;display:block}
-  #stats{padding:6px 8px;gap:3px}
+  
+padding:6px 8px;gap:3px}
   #stats>div{padding:3px 0}
   #stats .n{font-size:15px}
   #stats .l{font-size:9px}
@@ -62,7 +69,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   #list{max-height:40vh}
   #list .item{padding:6px 6px;font-size:12px}
   #panel.collapsed #filters,#panel.collapsed #search,#panel.collapsed #list{display:none}
-  #panel.collapsed #stats{padding:4px 8px}
+  #panel.collapsed 
+padding:4px 8px}
   #panel.collapsed #stats .n{font-size:14px}
 }
 
@@ -85,7 +93,21 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <div id="panel">
   <div class="handle-bar"></div>
   <h2><span class="ti">中国旅游地图 <span class="sm">7,000+ POI</span></span><span class="tg" id="toggleArrow">▲</span></h2>
-  <div id="stats">
+  <div id="modeSwitch"><button class="mode-btn active" data-mode="browse">浏览</button><button class="mode-btn" data-mode="plan">行程规划</button></div>
+<div id="tripForm" style="display:none;padding:6px 10px;border-bottom:1px solid #e0e0e0;background:#f8f9fa;font-size:12px">
+  <div style="display:flex;gap:4px;margin-bottom:4px">
+    <input id="tripOrigin" placeholder="出发地（城市名）" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+    <input id="tripDest" placeholder="目的地" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+  </div>
+  <div style="display:flex;gap:4px;align-items:center">
+    <select id="tripMode" style="padding:4px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+      <option value="driving">自驾</option>
+      <option value="transit">公共交通</option>
+    </select>
+    <button id="tripBtn" style="padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px">规划行程</button>
+    <span id="tripStatus" style="color:#888;font-size:11px;margin-left:4px"></span>
+  </div>
+</div><div id="stats">
     <div><div class="n" id="stotal">0</div><div class="l">总</div></div>
     <div><div class="n" id="sscenic">0</div><div class="l">景区</div></div>
     <div><div class="n" id="sfood">0</div><div class="l">美食</div></div>
@@ -307,6 +329,23 @@ function flyTo(lat,lng){if(map)map.setZoomAndCenter(14,[lng,lat]);if(isMobile&&!
 
 function setupUI(){
   var btns=document.querySelectorAll("#filters button");
+    // Mode switch
+  document.querySelectorAll(".mode-btn").forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll(".mode-btn").forEach(function(b){ b.classList.remove("active"); });
+      this.classList.add("active");
+      tripMode = this.getAttribute("data-mode") === "plan";
+      document.getElementById("tripForm").style.display = tripMode ? "block" : "none";
+      document.getElementById("search").style.display = tripMode ? "none" : "block";
+      document.getElementById("filters").style.display = tripMode ? "none" : "block";
+      document.getElementById("stats").style.display = tripMode ? "none" : "block";
+      if (!tripMode) { refreshMarkers(); }
+    };
+  });
+  document.getElementById("tripBtn").onclick = doPlanTrip;
+  // ENTER key in trip inputs
+  document.getElementById("tripOrigin").onkeydown = function(e){ if(e.keyCode===13) doPlanTrip(); };
+  document.getElementById("tripDest").onkeydown = function(e){ if(e.keyCode===13) doPlanTrip(); };
   btns.forEach(function(btn){
     btn.onclick=function(){
       btns.forEach(function(b){b.classList.remove("active")});
@@ -338,6 +377,84 @@ function setupUI(){
     }
     status("定位成功");
   },function(err){status("定位失败: "+err.message)},{enableHighAccuracy:true,timeout:10000});
+}
+
+/* === Trip Planner === */
+var tripMode = false, tripRoute = null, tripMarkers = [];
+function doPlanTrip() {
+  var origin = document.getElementById("tripOrigin").value.trim();
+  var dest = document.getElementById("tripDest").value.trim();
+  if (!origin || !dest) { document.getElementById("tripStatus").textContent = "请填写出发地和目的地"; return; }
+  var mode = document.getElementById("tripMode").value;
+  document.getElementById("tripStatus").textContent = "规划中...";
+  document.getElementById("tripBtn").disabled = true;
+  var url = "/api/plan_trip?origin=" + encodeURIComponent(origin) + "&dest=" + encodeURIComponent(dest) + "&mode=" + mode;
+  fetch(url).then(function(r){ return r.json(); }).then(function(d){
+    document.getElementById("tripBtn").disabled = false;
+    if (d.error) { document.getElementById("tripStatus").textContent = d.error; return; }
+    document.getElementById("tripStatus").textContent = "找到 " + d.total_pois + " 个点，约" + d.route.duration_text;
+    showTripRoute(d);
+  }).catch(function(e){
+    document.getElementById("tripBtn").disabled = false;
+    document.getElementById("tripStatus").textContent = "请求失败";
+  });
+}
+function showTripRoute(d) {
+  // Clear existing route + markers
+  if (tripRoute) { map.remove(tripRoute); tripRoute = null; }
+  tripMarkers.forEach(function(m){ m.setMap(null); });
+  tripMarkers = [];
+  
+  // Draw route polyline
+  var points = d.route.polyline.map(function(p){ return [p[1], p[0]]; }); // [lng, lat]
+  tripRoute = new AMap.Polyline({
+    path: points, strokeColor: "#c0392b", strokeWeight: 4, strokeOpacity: 0.8,
+    strokeStyle: "solid", lineJoin: "round"
+  });
+  tripRoute.setMap(map);
+  
+  // Fit bounds
+  map.setFitView([tripRoute], false, [60, 60, 60, 60]);
+  
+  // Mark origin and destination
+  var originMarker = new AMap.Marker({
+    position: [d.origin.lng, d.origin.lat],
+    content: '<div style="background:#27ae60;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>',
+    offset: new AMap.Pixel(-7, -7), title: d.origin.name
+  });
+  originMarker.setMap(map);
+  tripMarkers.push(originMarker);
+  
+  var destMarker = new AMap.Marker({
+    position: [d.destination.lng, d.destination.lat],
+    content: '<div style="background:#c0392b;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>',
+    offset: new AMap.Pixel(-7, -7), title: d.destination.name
+  });
+  destMarker.setMap(map);
+  tripMarkers.push(destMarker);
+  
+  // Show itinerary list
+  showTripDays(d);
+}
+function showTripDays(d) {
+  var html = '<div style="padding:4px 0">';
+  html += '<div style="font-size:13px;color:#333;margin-bottom:6px">路线: ' + d.origin.name + ' → ' + d.destination.name + '</div>';
+  html += '<div style="font-size:11px;color:#888;margin-bottom:8px">' + d.route.distance_text + ' · ' + d.route.duration_text + ' · 共' + d.total_pois + '个沿途点</div>';
+  d.days.forEach(function(day){
+    html += '<div style="font-size:12px;font-weight:700;color:#c0392b;margin:6px 0 3px;padding:2px 0;border-bottom:1px solid #eee">' + day.title + '</div>';
+    day.pois.forEach(function(p){
+      var tag = p.type === "food" ? "食" : (p.rating || "景");
+      var cls = p.type === "food" ? "f" : "s";
+      html += '<div class="item" onclick="flyTo(' + p.lat + ',' + p.lng + ')">';
+      html += '<div class="dot ' + cls + '"></div>';
+      html += '<div class="info"><div class="name">' + esc(p.name) + '</div>';
+      html += '<div class="sub">' + esc(p.city || "") + ' · ' + esc(p.description || "") + '</div></div>';
+      html += '<div class="tag ' + cls + '">' + esc(tag) + '</div></div>';
+    });
+    if (day.pois.length === 0) html += '<div style="font-size:11px;color:#999;padding:2px 8px">该段暂无标注点</div>';
+  });
+  html += '</div>';
+  document.getElementById("list").innerHTML = html;
 }
 window.addEventListener("resize",function(){
     var wasMobile=isMobile;isMobile=window.innerWidth<768;
