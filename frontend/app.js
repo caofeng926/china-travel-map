@@ -24,13 +24,13 @@ function loadData() {
 }
 
 function getIconStyle(p) {
-  if (p.rating && p.rating.indexOf("街区") >= 0) return { color: "#9b59b6", label: "�?, size: 28 };
+  if (p.rating && p.rating.indexOf("街区") >= 0) return { color: "#9b59b6", label: "街", size: 28 };
   if (p.type === "food") return { color: "#e67e22", label: "F", size: 26 };
   if (p.rating === "5A") return { color: "#c0392b", label: "5", size: 32 };
   if (p.rating === "4A") return { color: "#e74c3c", label: "4", size: 28 };
   if (p.rating === "3A") return { color: "#e67e22", label: "3", size: 24 };
   if (p.rating === "2A") return { color: "#3498db", label: "2", size: 22 };
-  if (p.type === "scenic") return { color: "#4361ee", label: "�?, size: 26 };
+  if (p.type === "scenic") return { color: "#4361ee", label: "景", size: 26 };
   return { color: "#4361ee", label: "S", size: 26 };
 }
 
