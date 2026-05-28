@@ -3,7 +3,7 @@ import sqlite3, os, math
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "china_travel.db")
 def get_conn():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
@@ -28,6 +28,8 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_att_rating ON attractions(rating);
         CREATE INDEX IF NOT EXISTS idx_att_province ON attractions(province);
         CREATE INDEX IF NOT EXISTS idx_food_city ON foods(city);
+        CREATE INDEX IF NOT EXISTS idx_att_lat_lng ON attractions(lat, lng);
+        CREATE INDEX IF NOT EXISTS idx_food_lat_lng ON foods(lat, lng);
     """)
     conn.commit()
     conn.close()

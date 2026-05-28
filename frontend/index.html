@@ -127,6 +127,20 @@ var stEl=document.getElementById("status");
 var API_BASE = location.origin + location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 function status(m){stEl.textContent=m;console.log(m)}
 
+function fetchRetry(url, retries, delay){
+  return fetch(url).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r;
+  }).catch(function(e){
+    if(retries <= 1) throw e;
+    return new Promise(function(resolve){
+      setTimeout(resolve, delay);
+    }).then(function(){
+      return fetchRetry(url, retries-1, delay*2);
+    });
+  });
+}
+
 window._AMapSecurityConfig={securityJsCode:"b8af7f12aafdc31fe67ee671a6871dd6"};window.AMapSecurityConfig=window._AMapSecurityConfig;
 var AMAP_KEY="6341f96e11ef424295330e635f174132";
 var map=null,allPois=[],allStats=null,currentMarkers=[],currentFilter="all",isRendering=false,renderTimeout=null,isTripMode=false;
@@ -192,7 +206,8 @@ function createMap(){
       }
     });
   });
-    fetch(API_BASE + "/api/pois?compact=0&page_size=15000")
+    var retryDelay = 1000;
+    fetchRetry(API_BASE + "/api/pois?compact=0&page_size=15000", 3, retryDelay)
       .then(function(r){return r.json()})
       .then(function(d){
         allPois=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");

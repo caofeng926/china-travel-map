@@ -5,6 +5,16 @@ sys.path.insert(0, os.path.dirname(__file__))
 from database import init_db, search_pois, get_stats, insert_attractions, insert_foods
 from trip_planner import plan_trip
 
+def _sf(v, d=None):
+    """Safe float conversion, returns d on failure"""
+    try: return float(v) if v is not None and v != "" else d
+    except: return d
+
+def _si(v, d=None):
+    """Safe int conversion, returns d on failure"""
+    try: return int(v) if v is not None and v != "" else d
+    except: return d
+
 HOST, PORT = "0.0.0.0", 8765
 FRONTEND = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
@@ -21,13 +31,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             p = parse_qs(urlparse(self.path).query)
             def g(k, d=None): return p.get(k, [d])[0]
             self._json(search_pois(
-                compact=g("compact", "1") == "1",
-                center_lat=float(g("lat", 0)) if g("lat") else None,
-                center_lng=float(g("lng", 0)) if g("lng") else None,
-                radius_km=float(g("radius", 500)),
+                compact = g("compact", "1") == "1",
+                center_lat=_sf(g("lat")),
+                center_lng=_sf(g("lng")),
+                radius_km=_sf(g("radius"), 500),
                 rating=g("rating"), type_filter=g("type"),
                 keyword=g("keyword"), province=g("province"), city=g("city"),
-                page=int(g("page", 1)), page_size=int(g("page_size", 500))
+                page=_si(g("page"), 1), page_size=_si(g("page_size"), 500)
             ))
         elif self.path.startswith("/api/plan_trip"):
             p = parse_qs(urlparse(self.path).query)
@@ -59,6 +69,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def end_headers(self):
+        if not self.path.startswith("/api/"):
+            csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://webapi.amap.com https://*.amap.com https://*.autonavi.com; img-src 'self' data: https://*.amap.com https://*.autonavi.com; connect-src 'self' https://*.amap.com https://*.autonavi.com"
+            self.send_header("Content-Security-Policy", csp)
         if self.path.endswith('.html') or self.path == '/':
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
         super().end_headers()
@@ -84,8 +97,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(raw)
 
-if __name__ == "__main__":
-    print("China Travel Map Server starting...")
 if __name__ == "__main__":
     print("China Travel Map Server starting...")
     print(f"  Frontend: http://localhost:{PORT}/")

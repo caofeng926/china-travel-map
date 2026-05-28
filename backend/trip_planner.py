@@ -14,7 +14,8 @@ def geocode(address):
             if data["status"] == "1" and data["geocodes"]:
                 loc = data["geocodes"][0]["location"].split(",")
                 return float(loc[1]), float(loc[0]), data["geocodes"][0].get("formatted_address", address)
-    except: pass
+    except Exception as e:
+        print(f"Geocode error for {address}: {e}")
     return None, None, address
 
 def get_driving_route(origin_lat, origin_lng, dest_lat, dest_lng):
@@ -72,7 +73,8 @@ def get_transit_route(origin_lat, origin_lng, dest_lat, dest_lng, city=""):
                 return {"polyline": polyline, "duration": dur, "distance": 0,
                         "duration_text": f"{dur//3600}\u5c0f\u65f6{(dur%3600)//60}\u5206",
                         "distance_text": "\u516c\u5171\u4ea4\u901a"}
-    except: pass
+    except Exception as e:
+        print(f"Transit route error: {e}")
     return None
 
 def _interpolate(lat1, lng1, lat2, lng2, n=30):
@@ -94,12 +96,43 @@ def sample_polyline(polyline, interval_km=10):
 
 def find_pois_along_route(polyline):
     samples = sample_polyline(polyline, interval_km=8)
+    if not samples:
+        return []
     conn = get_conn()
     seen = set()
     pois = []
+
+    # Compute bounding box covering all samples with SEARCH_RADIUS padding
+    lats = [p[0] for p in samples]
+    lngs = [p[1] for p in samples]
+    min_lat, max_lat = min(lats), max(lats)
+    min_lng, max_lng = min(lngs), max(lngs)
+    # 1 deg lat ~ 111km, 1 deg lng ~ 111*cos(lat) km
+    avg_lat = (min_lat + max_lat) / 2
+    dlat = SEARCH_RADIUS / 111.0 + 0.5  # extra padding
+    dlng = SEARCH_RADIUS / (111.0 * math.cos(math.radians(avg_lat))) + 0.5
+    min_lat -= dlat
+    max_lat += dlat
+    min_lng -= dlng
+    max_lng += dlng
+
+    # Fetch attractions in bounding box
+    cur = conn.execute(
+        "SELECT id,name,rating,city,province,address,lat,lng,description FROM attractions WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?",
+        (min_lat, max_lat, min_lng, max_lng)
+    )
+    attraction_rows = cur.fetchall()
+    
+    # Fetch foods in bounding box
+    cur2 = conn.execute(
+        "SELECT id,name,city,province,lat,lng,description,address,shop_name FROM foods WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?",
+        (min_lat, max_lat, min_lng, max_lng)
+    )
+    food_rows = cur2.fetchall()
+
+    # Now check each sample against pre-filtered data
     for lat, lng in samples:
-        cur = conn.execute("SELECT id,name,rating,city,province,address,lat,lng,description FROM attractions WHERE lat IS NOT NULL AND lng IS NOT NULL")
-        for row in cur.fetchall():
+        for row in attraction_rows:
             d = dict(row)
             dist = haversine(lat, lng, d["lat"], d["lng"])
             key = f"a_{d['id']}"
@@ -109,8 +142,7 @@ def find_pois_along_route(polyline):
                 d["type"] = "scenic"
                 d["cat"] = "\u666f\u533a"
                 pois.append(d)
-        cur2 = conn.execute("SELECT id,name,city,province,lat,lng,description,address,shop_name FROM foods WHERE lat IS NOT NULL AND lng IS NOT NULL")
-        for row in cur2.fetchall():
+        for row in food_rows:
             d = dict(row)
             dist = haversine(lat, lng, d["lat"], d["lng"])
             key = f"f_{d['id']}"
