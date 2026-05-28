@@ -88,27 +88,27 @@ padding:4px 8px}
 </head>
 <body>
 <div id="map"></div>
-<button id="toggleBtn" onclick="togglePanel()">☰</button>
+<button id="toggleBtn" onclick="togglePanel()">�?/button>
 <button id="locateBtn" onclick="doLocate()">📍</button>
 <div id="panel">
   <div class="handle-bar"></div>
-  <h2><span class="ti">中国旅游地图 <span class="sm">7,000+ POI</span></span><span class="tg" id="toggleArrow">▲</span></h2>
+  <h2><span class="ti">中国旅游地图 <span class="sm">7,000+ POI</span></span><span class="tg" id="toggleArrow">�?/span></h2>
   <div id="modeSwitch"><button class="mode-btn active" data-mode="browse">浏览</button><button class="mode-btn" data-mode="plan">行程规划</button></div>
 <div id="tripForm" style="display:none;padding:6px 10px;border-bottom:1px solid #e0e0e0;background:#f8f9fa;font-size:12px">
   <div style="display:flex;gap:4px;margin-bottom:4px">
     <input id="tripOrigin" placeholder="出发地（城市名）" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
-    <input id="tripDest" placeholder="目的地" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+    <input id="tripDest" placeholder="目的�? style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
   </div>
   <div style="display:flex;gap:4px;align-items:center">
     <select id="tripMode" style="padding:4px;border:1px solid #ccc;border-radius:3px;font-size:12px">
       <option value="driving">自驾</option>
-      <option value="transit">公共交通</option>
+      <option value="transit">公共交�?/option>
     </select>
     <button id="tripBtn" style="padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px">规划行程</button>
     <span id="tripStatus" style="color:#888;font-size:11px;margin-left:4px"></span>
   </div>
 </div><div id="stats">
-    <div><div class="n" id="stotal">0</div><div class="l">总</div></div>
+    <div><div class="n" id="stotal">0</div><div class="l">�?/div></div>
     <div><div class="n" id="sscenic">0</div><div class="l">景区</div></div>
     <div><div class="n" id="sfood">0</div><div class="l">美食</div></div>
     <div><div class="n" id="sleisure">0</div><div class="l">街区</div></div>
@@ -119,11 +119,12 @@ padding:4px 8px}
     <button data-type="leisure">街区</button><button data-type="world">世界</button>
     <button data-type="resort">度假</button><button data-type="food">美食</button>
   </div>
-  <div id="search"><input type="text" id="kw" placeholder="搜索景点名称或城市..."></div>
-  <div id="list"><div id="status">加载中...</div></div>
+  <div id="search"><input type="text" id="kw" placeholder="搜索景点名称或城�?.."></div>
+  <div id="list"><div id="status">加载�?..</div></div>
 </div>
 <script>
 var stEl=document.getElementById("status");
+var API_BASE = location.origin + location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 function status(m){stEl.textContent=m;console.log(m)}
 
 window._AMapSecurityConfig={securityJsCode:"b8af7f12aafdc31fe67ee671a6871dd6"};window.AMapSecurityConfig=window._AMapSecurityConfig;
@@ -149,7 +150,7 @@ var isMobile=window.innerWidth<768;
 
 function togglePanel(){
   panel.classList.toggle("collapsed");
-  document.getElementById("toggleArrow").textContent=panel.classList.contains("collapsed")?"▼":"▲";
+  document.getElementById("toggleArrow").textContent=panel.classList.contains("collapsed")?"�?:"�?;
 }
 if(isMobile){
   setTimeout(function(){panel.classList.add("collapsed")},500);
@@ -168,7 +169,7 @@ window._onAmapLoad=function(){status("加载地图...");createMap()};
 function createMap(){
   try{
     map=new AMap.Map("map",{center:[109.5,36.5],zoom:5,mapStyle:"amap://styles/light"});
-    status("地图OK，加载数据...");
+    status("地图OK，加载数�?..");
   // 添加定位控件
   AMap.plugin("AMap.Geolocation",function(){
     var geolocation=new AMap.Geolocation({
@@ -191,11 +192,11 @@ function createMap(){
       }
     });
   });
-    fetch("/api/pois?compact=0&page_size=15000")
+    fetch(API_BASE + "/api/pois?compact=0&page_size=15000")
       .then(function(r){return r.json()})
       .then(function(d){
         allPois=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");
-        status("加载了 "+allPois.length+" 个POI");
+        status("加载�?"+allPois.length+" 个POI");
         setupUI();updateStats(allPois);renderList(allPois.slice(0,100));
         map.on("moveend",refreshMarkers);map.on("zoomend",refreshMarkers);
         refreshMarkers();
@@ -205,16 +206,16 @@ function createMap(){
 }
 
 function iconStyle(p){
-  if(p.type==="food")return{color:"#f39c12",label:"食",cls:"f",size:24};
-  if(p.rating==="世界遗产")return{color:"#27ae60",label:"世",cls:"w",size:28};
-  if(p.rating==="国家级旅游度假区")return{color:"#2980b9",label:"度",cls:"r",size:24};
-  if(p.rating&&p.rating.indexOf("滑雪")>=0)return{color:"#3498db",label:"雪",cls:"s",size:24};
-  if(p.rating&&p.rating.indexOf("街区")>=0)return{color:"#9b59b6",label:"街",cls:"l",size:24};
+  if(p.type==="food")return{color:"#f39c12",label:"�?,cls:"f",size:24};
+  if(p.rating==="世界遗产")return{color:"#27ae60",label:"�?,cls:"w",size:28};
+  if(p.rating==="国家级旅游度假区")return{color:"#2980b9",label:"�?,cls:"r",size:24};
+  if(p.rating&&p.rating.indexOf("滑雪")>=0)return{color:"#3498db",label:"�?,cls:"s",size:24};
+  if(p.rating&&p.rating.indexOf("街区")>=0)return{color:"#9b59b6",label:"�?,cls:"l",size:24};
   var rt=p.rating||"";
   if(rt.indexOf("5A")>=0)return{color:"#c0392b",label:"5A",cls:"s",size:30};
   if(rt.indexOf("4A")>=0)return{color:"#e74c3c",label:"4A",cls:"s",size:26};
   if(rt.indexOf("3A")>=0)return{color:"#e67e22",label:"3A",cls:"s",size:24};
-  return{color:"#95a5a6",label:"●",cls:"s",size:20};
+  return{color:"#95a5a6",label:"�?,cls:"s",size:20};
 }
 
 var MAX_VISIBLE=window.innerWidth<768?300:600;
@@ -276,7 +277,7 @@ function renderBatch(toRender,allFiltered){console.log("renderBatch called: toRe
     }
     console.log("adding batch of "+markers.length+" markers");map.add(markers);
     currentMarkers=currentMarkers.concat(markers);
-    status("显示了 "+currentMarkers.length+" 个标记");
+    status("显示�?"+currentMarkers.length+" 个标�?);
     idx=end;
     if(idx<toRender.length)setTimeout(addBatch,30);
   }
@@ -309,13 +310,13 @@ function renderList(arr){
   var list=document.getElementById("list"),show=arr.slice(0,100),html="";
   show.forEach(function(p){
     var cls="s";if(p.type==="food")cls="f";else if(p.rating==="世界遗产")cls="w";else if(p.rating==="国家级旅游度假区")cls="r";else if(p.rating&&p.rating.indexOf("街区")>=0)cls="l";
-    var tag=p.type==="food"?"食":p.rating==="世界遗产"?"世":p.rating==="国家级旅游度假区"?"度":(p.rating||"景").replace("国家级旅游","");
+    var tag=p.type==="food"?"�?:p.rating==="世界遗产"?"�?:p.rating==="国家级旅游度假区"?"�?:(p.rating||"�?).replace("国家级旅�?,"");
     html+='<div class="item" onclick="flyTo('+p.lat+","+p.lng+')">';
     html+='<div class="dot '+cls+'"></div>';
     html+='<div class="info"><div class="name">'+esc(p.name)+'</div><div class="sub">'+esc(p.city||"")+'</div></div>';
     html+='<div class="tag '+cls+'">'+tag+'</div></div>';
   });
-  if(arr.length>100)html+='<div style="text-align:center;color:#999;font-size:11px;padding:4px">... +'+(arr.length-100)+' 个</div>';
+  if(arr.length>100)html+='<div style="text-align:center;color:#999;font-size:11px;padding:4px">... +'+(arr.length-100)+' �?/div>';
   list.innerHTML=html;
 }
 
@@ -358,7 +359,7 @@ function setupUI(){
     var show=filtered.slice(0,window.innerWidth<768?200:500);
     renderBatch(show,filtered);
     updateStats(filtered);renderList(filtered.slice(0,100));
-    status("搜索: "+filtered.length+" 个结果");
+    status("搜索: "+filtered.length+" 个结�?);
   };
   function doLocate(){
   if(!navigator.geolocation){status("浏览器不支持定位");return}
@@ -381,9 +382,9 @@ function doPlanTrip() {
   var dest = document.getElementById("tripDest").value.trim();
   if (!origin || !dest) { document.getElementById("tripStatus").textContent = "请填写出发地和目的地"; return; }
   var mode = document.getElementById("tripMode").value;
-  document.getElementById("tripStatus").textContent = "规划中...";
+  document.getElementById("tripStatus").textContent = "规划�?..";
   document.getElementById("tripBtn").disabled = true;
-  var url = "/api/plan_trip?origin=" + encodeURIComponent(origin) + "&dest=" + encodeURIComponent(dest) + "&mode=" + mode;
+  var url = API_BASE + "/api/plan_trip?origin=" + encodeURIComponent(origin) + "&dest=" + encodeURIComponent(dest) + "&mode=" + mode;
   fetch(url).then(function(r){ return r.json(); }).then(function(d){
     document.getElementById("tripBtn").disabled = false;
     if (d.error) { document.getElementById("tripStatus").textContent = d.error; return; }
@@ -433,12 +434,12 @@ function showTripRoute(d) {
 }
 function showTripDays(d) {
   var html = '<div style="padding:4px 0">';
-  html += '<div style="font-size:13px;color:#333;margin-bottom:6px">路线: ' + d.origin.name + ' → ' + d.destination.name + '</div>';
-  html += '<div style="font-size:11px;color:#888;margin-bottom:8px">' + d.route.distance_text + ' · ' + d.route.duration_text + ' · 共' + d.total_pois + '个沿途点</div>';
+  html += '<div style="font-size:13px;color:#333;margin-bottom:6px">路线: ' + d.origin.name + ' �?' + d.destination.name + '</div>';
+  html += '<div style="font-size:11px;color:#888;margin-bottom:8px">' + d.route.distance_text + ' · ' + d.route.duration_text + ' · �? + d.total_pois + '个沿途点</div>';
   d.days.forEach(function(day){
     html += '<div style="font-size:12px;font-weight:700;color:#c0392b;margin:6px 0 3px;padding:2px 0;border-bottom:1px solid #eee">' + day.title + '</div>';
     day.pois.forEach(function(p){
-      var tag = p.type === "food" ? "食" : (p.rating || "景");
+      var tag = p.type === "food" ? "�? : (p.rating || "�?);
       var cls = p.type === "food" ? "f" : "s";
       html += '<div class="item" onclick="flyTo(' + p.lat + ',' + p.lng + ')">';
       html += '<div class="dot ' + cls + '"></div>';
@@ -446,7 +447,7 @@ function showTripDays(d) {
       html += '<div class="sub">' + esc(p.city || "") + ' · ' + esc(p.description || "") + '</div></div>';
       html += '<div class="tag ' + cls + '">' + esc(tag) + '</div></div>';
     });
-    if (day.pois.length === 0) html += '<div style="font-size:11px;color:#999;padding:2px 8px">该段暂无标注点</div>';
+    if (day.pois.length === 0) html += '<div style="font-size:11px;color:#999;padding:2px 8px">该段暂无标注�?/div>';
   });
   html += '</div>';
   document.getElementById("list").innerHTML = html;
