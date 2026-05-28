@@ -58,6 +58,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers","Content-Type")
         self.end_headers()
 
+    def end_headers(self):
+        if self.path.endswith('.html') or self.path == '/':
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        super().end_headers()
+
     def _json(self, data, status=200):
         raw = json.dumps(data, ensure_ascii=False).encode("utf-8")
         accept = self.headers.get("Accept-Encoding", "")
