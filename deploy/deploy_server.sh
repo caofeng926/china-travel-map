@@ -18,6 +18,8 @@ python3 -c "from database import init_db; init_db(); print('DB OK')"
 
 pkill -f "python.*server.py" 2>/dev/null || true
 sleep 1
+# 从 .env 加载 AMAP_KEY（若未设置则从环境变量读取）
+export AMAP_KEY=${AMAP_KEY:-fc5ea342775f94afaf8aec42694fdb4c}
 nohup python3 server.py > /tmp/travel.log 2>&1 &
 sleep 2
 

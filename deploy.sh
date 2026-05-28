@@ -24,7 +24,9 @@ ufw allow 8765/tcp 2>/dev/null || true
 
 # 4. 启动服务（使用nohup后台运行）
 pkill -f "python3.*server.py" 2>/dev/null || true
-nohup python3 backend/server.py > server.log 2>&1 &
+export AMAP_KEY=${AMAP_KEY:-fc5ea342775f94afaf8aec42694fdb4c}
+
+ohup python3 backend/server.py > server.log 2>&1 &
 
 echo "=== 部署完成 ==="
 echo "访问地址: http://$(curl -s ifconfig.me):8765"
