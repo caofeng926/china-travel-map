@@ -4,7 +4,6 @@ __pycache__/
 *.pyo
 .venv/
 venv/
-
 # Database
 *.db
 *.db.*
@@ -13,21 +12,17 @@ backend/data/*.bak*
 backend/data/*.json
 !backend/data/china_travel.db
 !backend/data/province_data.json
-
 # Logs
 *.log
-
 # OS
 Thumbs.db
 .DS_Store
 Desktop.ini
-
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
 # Temp scripts
 *.ps1
 check_*.py
@@ -53,7 +48,6 @@ simplify*.py
 download_*.py
 find_*.py
 get_*.py
-
 # Additional temp scripts
 add_official_5a.py
 final_verify.py
@@ -67,11 +61,9 @@ backend/data/amap_4a/
 backend/data/best_food/
 backend/data/official_*.bin
 frontend/test_map.html
-
 # Temp JSON payloads
 _tmp_*.json
 push_*.py
-
 # Temp test files
 backend/srv*.txt
 backend/spawn_out.txt
@@ -79,3 +71,7 @@ backend/test_*.txt
 backend/startup_error.log
 *.bat
 srv.log
+
+# Environment
+.env
+.env.local

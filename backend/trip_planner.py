@@ -2,7 +2,7 @@
 import json, urllib.request, urllib.parse, math, time, os
 from database import get_conn, haversine, DB_PATH
 
-AMAP_KEY = "fc5ea342775f94afaf8aec42694fdb4c"
+AMAP_KEY = os.environ.get("AMAP_KEY", "fc5ea342775f94afaf8aec42694fdb4c")
 SEARCH_RADIUS = 15  # km
 
 def geocode(address):
