@@ -53,3 +53,17 @@ simplify*.py
 download_*.py
 find_*.py
 get_*.py
+
+# Additional temp scripts
+add_official_5a.py
+final_verify.py
+verify.py
+baidu_search.html
+push_github.py
+push_github2.py
+backend/add_more_data.py
+backend/all_5a*.json
+backend/data/amap_4a/
+backend/data/best_food/
+backend/data/official_*.bin
+frontend/test_map.html
