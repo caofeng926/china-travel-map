@@ -3,6 +3,7 @@ import http.server, json, os, sys, gzip, io
 from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(__file__))
 from database import init_db, search_pois, get_stats, insert_attractions, insert_foods
+from trip_planner import plan_trip
 
 HOST, PORT = "0.0.0.0", 8765
 FRONTEND = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -27,6 +28,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 rating=g("rating"), type_filter=g("type"),
                 keyword=g("keyword"), province=g("province"), city=g("city"),
                 page=int(g("page", 1)), page_size=int(g("page_size", 500))
+            ))
+        elif self.path.startswith("/api/plan_trip"):
+            p = parse_qs(urlparse(self.path).query)
+            def g(k, d=None): return p.get(k, [d])[0]
+            self._json(plan_trip(
+                origin_name=g("origin", ""),
+                dest_name=g("dest", ""),
+                mode=g("mode", "driving")
             ))
         elif self.path == "/api/health":
             self._json({"status":"ok","service":"china-travel-map"})
@@ -72,8 +81,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("China Travel Map Server starting...")
+if __name__ == "__main__":
+    print("China Travel Map Server starting...")
     print(f"  Frontend: http://localhost:{PORT}/")
     print(f"  API: http://localhost:{PORT}/api/health")
     init_db()
     from http.server import ThreadingHTTPServer
-ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
