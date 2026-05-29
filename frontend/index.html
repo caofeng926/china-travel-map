@@ -207,7 +207,7 @@ function createMap(){
     });
   });
     var retryDelay = 1000;
-    fetchRetry(API_BASE + "/api/pois?compact=0&page_size=2000", 3, retryDelay)
+    fetchRetry(API_BASE + "/api/pois?compact=0&page_size=5000", 3, retryDelay)
       .then(function(r){return r.json()})
       .then(function(d){
         allPois=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");
