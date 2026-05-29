@@ -16,7 +16,10 @@ jobs:
           python-version: "3.11"
       - name: Run backend tests
         run: |
-          python backend/test_api.py
+          python -c "import sys; print(sys.version)"
+          python -c "import os; print(os.getcwd()); print(os.listdir('backend'))"
+          python -m py_compile backend/test_api.py
+          python backend/test_api.py -v
       - name: Check Python syntax
         run: |
           python -m py_compile backend/server.py
