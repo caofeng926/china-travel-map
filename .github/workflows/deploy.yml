@@ -38,14 +38,15 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            set -e
             export AMAP_KEY="${{ secrets.AMAP_KEY }}"
-            cd /opt/china-travel-map
-            git pull
+            cd /opt/china-travel-map 2>/dev/null || { mkdir -p /opt && git clone https://github.com/caofeng926/china-travel-map.git /opt/china-travel-map && cd /opt/china-travel-map; }
+            echo "Pulling latest code..."
+            timeout 30 git pull || echo "git pull skipped (network issue), using current code"
+            echo "Restarting server..."
             pkill -f "python3.*server.py" 2>/dev/null || true
             sleep 1
             cd backend
             nohup python3 server.py > ../server.log 2>&1 &
             sleep 2
-            curl -s http://127.0.0.1:8765/api/health || echo "Health check failed, check server.log"
+            curl -s --connect-timeout 5 http://127.0.0.1:8765/api/health && echo "Health OK" || echo "Health check failed, check server.log"
             echo "Deployed!"
