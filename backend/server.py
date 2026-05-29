@@ -142,16 +142,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type","application/json; charset=utf-8")
             self.send_header("Content-Encoding","gzip")
             origin = self._get_allowed_origin()
-        if origin:
-            self.send_header("Access-Control-Allow-Origin", origin)
+            if origin:
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(compressed)
         else:
             self.send_response(status)
             self.send_header("Content-Type","application/json; charset=utf-8")
             origin = self._get_allowed_origin()
-        if origin:
-            self.send_header("Access-Control-Allow-Origin", origin)
+            if origin:
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(raw)
 
