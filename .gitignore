@@ -75,3 +75,13 @@ srv.log
 # Environment
 .env
 .env.local
+
+# Temp deploy scripts
+redeploy*.py
+fix_*.py
+check_*.py
+verify*.py
+debug*.py
+git_push*.py
+push_github*.py
+*_deploy*.py

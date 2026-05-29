@@ -185,7 +185,7 @@ function createMap(){
     map=new AMap.Map("map",{center:[109.5,36.5],zoom:5,mapStyle:"amap://styles/light"});
     status("地图OK，加载数据...");
   // 添加定位控件
-  AMap.plugin(["AMap.Geolocation","AMap.MarkerClusterer"],function(){
+  AMap.plugin("AMap.Geolocation",function(){
     var geolocation=new AMap.Geolocation({
       enableHighAccuracy:true,
       timeout:10000,
@@ -207,7 +207,7 @@ function createMap(){
     });
   });
     var retryDelay = 1000;
-    fetchRetry(API_BASE + "/api/pois?compact=0&page_size=15000", 3, retryDelay)
+    fetchRetry(API_BASE + "/api/pois?compact=0&page_size=2000", 3, retryDelay)
       .then(function(r){return r.json()})
       .then(function(d){
         allPois=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");
@@ -241,9 +241,9 @@ function refreshMarkers(){
 }
 function doRefreshMarkers(){console.log("doRefreshMarkers: isTripMode="+isTripMode);if(isTripMode){console.log("skipping due to trip mode");return;}console.log("Refreshing markers...");
   isRendering=true;
-  if(window._markerClusterer){
-    window._markerClusterer.setMap(null);
-    window._markerClusterer = null;
+  if(window.__markers){
+    window.__markers.forEach(function(m){m.setMap(null)});
+    window.__markers=[];
   }
   currentMarkers.forEach(function(m){m.setMap(null)});
   currentMarkers=[];
@@ -264,11 +264,19 @@ function doRefreshMarkers(){console.log("doRefreshMarkers: isTripMode="+isTripMo
   isRendering=false;
 }
 
-function renderBatch(toRender,allFiltered){console.log("renderBatch called: toRender="+toRender.length+", allFiltered="+allFiltered.length);
-  var batchSize=200,idx=0;
+function renderBatch(toRender,allFiltered){
+  if(window.__clusterer){
+    window.__clusterer.setMap(null);window.__clusterer=null;
+  }
+  if(window.__markers){
+    window.__markers.forEach(function(m){m.setMap(null)});window.__markers=[];
+  }
+  if(toRender.length===0){status("\u6682\u65e0\u7b26\u5408\u6761\u4ef6\u7684POI");return}
+  status("\u6b63\u5728\u6e32\u67d3 "+toRender.length+" \u4e2a\u6807\u8bb0...");
+  var batchSize=200,idx=0,allMarkers=[];
   function addBatch(){
-    var end=Math.min(idx+batchSize,toRender.length),markers=[];
-    for(var i=idx;i<end;i++){
+    var end2=Math.min(idx+batchSize,toRender.length);
+    for(var i=idx;i<end2;i++){
       var p=toRender[i],st=iconStyle(p);
       var m=new AMap.Marker({
         position:[p.lng,p.lat],
@@ -282,26 +290,24 @@ function renderBatch(toRender,allFiltered){console.log("renderBatch called: toRe
         var c='<div style="min-width:200px;max-width:300px"><h3 style="font-size:14px;color:#c0392b;margin:0 0 4px">'+esc(d.name)+'</h3>';
         if(d.rating)c+='<span style="font-size:11px;background:#c0392b;color:#fff;padding:1px 6px;border-radius:3px">'+esc(d.rating)+'</span> ';
         c+='<p style="font-size:12px;color:#555;margin:4px 0">'+esc(d.description||"")+'</p>';
-        if(userPosition){
-          var dist=getDistance(userPosition.lat,userPosition.lng,d.lat,d.lng);
-          c+='<p style="font-size:12px;color:#2980b9;margin:4px 0;font-weight:600">📍 距您 '+dist+'</p>';
-        }
-        if(d.address)c+='<p style="font-size:11px;color:#888;margin:2px 0">📍 '+esc(d.address)+'</p>';
-        if(d.shop_name)c+='<p style="font-size:11px;color:#e67e22;margin:2px 0">🏪 '+esc(d.shop_name)+'</p>';
-        c+='<p style="font-size:11px;color:#999;margin-top:4px">'+esc(d.city||"")+' '+esc(d.province||"")+'</p></div>';
-        new AMap.InfoWindow({content:c,offset:new AMap.Pixel(0,-30)}).open(map,this.getPosition());
-        if(isMobile&&!panel.classList.contains("collapsed"))togglePanel();
+        if(d.address)c+='<p style="font-size:11px;color:#888">'+esc(d.address)+'</p>';
+        if(d.shop_name)c+='<p style="font-size:11px;color:#e67e22">'+esc(d.shop_name)+'</p>';
+        c+='<p style="font-size:11px;color:#999">'+esc(d.province||"")+" "+esc(d.city||"")+'</p></div>';
+        new AMap.InfoWindow({content:c,offset:new AMap.Pixel(0,-28)}).open(map,this.getPosition());
       });
-      markers.push(m);
+      allMarkers.push(m);
     }
-    console.log("adding batch of "+markers.length+" markers");map.add(markers);
-    currentMarkers=currentMarkers.concat(markers);
-    status("显示了 "+currentMarkers.length+" 个标记");
-    idx=end;
-    if(idx<toRender.length)setTimeout(addBatch,30);
+    idx=end2;
+    if(idx<toRender.length){
+      status("\u6e32\u67d3\u4e2d... "+idx+"/"+toRender.length);
+      setTimeout(addBatch,20);
+    } else {
+      map.add(allMarkers);
+      window.__markers = allMarkers;
+      status("\u663e\u793a\u4e86 "+allMarkers.length+" \u4e2a\u6807\u8bb0");
+    }
   }
   addBatch();
-  updateStats(allFiltered);renderList(allFiltered.slice(0,100));
 }
 
 function filterData(){
@@ -374,7 +380,7 @@ function setupUI(){
     if(!q){refreshMarkers();return}
     var base=filterData();
     var filtered=base.filter(function(p){return(p.name&&p.name.toLowerCase().indexOf(q)>=0)||(p.city&&p.city.toLowerCase().indexOf(q)>=0)});
-    if(window._markerClusterer){window._markerClusterer.setMap(null);window._markerClusterer=null;}
+    if(window.__markers){window.__markers.forEach(function(m){m.setMap(null)});window.__markers=[];}
     currentMarkers.forEach(function(m){m.setMap(null)});currentMarkers=[];
     var show=filtered.slice(0,window.innerWidth<768?200:500);
     renderBatch(show,filtered);
