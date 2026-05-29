@@ -78,8 +78,6 @@ srv.log
 
 # Temp deploy scripts
 redeploy*.py
-fix_*.py
-check_*.py
 verify*.py
 debug*.py
 git_push*.py
@@ -91,15 +89,10 @@ push_github*.py
 *.bak*
 
 # Python cache
-__pycache__/
-*.pyc
-*.pyo
 
 # Environment
-.env
 
 # Logs
-*.log
 
 # Runtime logs
 backend/srv*.log
