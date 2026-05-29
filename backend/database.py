@@ -1,4 +1,4 @@
-"""China Travel Map - Database Module"""
+﻿"""China Travel Map - Database Module"""
 import sqlite3, os, math
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "china_travel.db")
 def get_conn():
@@ -42,7 +42,7 @@ def haversine(lat1, lng1, lat2, lng2):
 def search_pois(center_lat=None, center_lng=None, radius_km=None, rating=None, type_filter=None, keyword=None, province=None, city=None, page=1, page_size=100, compact=False):
     conn = get_conn()
     results = []
-    q = "SELECT * FROM attractions WHERE 1=1 ORDER BY CASE rating WHEN '5A' THEN 0 WHEN '4A' THEN 1 WHEN '3A' THEN 2 WHEN '2A' THEN 3 WHEN '\u4e16\u754c\u9057\u4ea7' THEN 0 WHEN '\u56fd\u5bb6\u7ea7\u65c5\u6e38\u5ea6\u5047\u533a' THEN 1 ELSE 4 END, name"
+    q = "SELECT * FROM attractions WHERE 1=1"
     p = []
     if rating and rating not in ("all", ""):
         q += " AND rating = ?"
@@ -54,6 +54,7 @@ def search_pois(center_lat=None, center_lng=None, radius_km=None, rating=None, t
     if province:
         q += " AND province = ?"
         p.append(province)
+    q += " ORDER BY CASE rating WHEN '5A' THEN 0 WHEN '4A' THEN 1 WHEN '3A' THEN 2 WHEN '2A' THEN 3 WHEN '\u4e16\u754c\u9057\u4ea7' THEN 0 WHEN '\u56fd\u5bb6\u7ea7\u65c5\u6e38\u5ea6\u5047\u533a' THEN 1 ELSE 4 END, name"
     for row in conn.execute(q, p).fetchall():
         d = dict(row)
         d["type"] = "scenic"

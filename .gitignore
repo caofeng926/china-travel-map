@@ -85,3 +85,23 @@ debug*.py
 git_push*.py
 push_github*.py
 *_deploy*.py
+
+# Backup files
+*.bak
+*.bak*
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# Runtime logs
+backend/srv*.log
+backend/out.log
+backend/err.log

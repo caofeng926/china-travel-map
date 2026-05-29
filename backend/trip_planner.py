@@ -1,8 +1,13 @@
-"""Trip Planner - Route planning & POI along route search"""
+﻿"""Trip Planner - Route planning & POI along route search"""
 import json, urllib.request, urllib.parse, math, time, os
 from database import get_conn, haversine, DB_PATH
 
-AMAP_KEY = os.environ.get("AMAP_KEY", "fc5ea342775f94afaf8aec42694fdb4c")
+AMAP_KEY = os.environ.get("AMAP_KEY")
+if not AMAP_KEY:
+    raise RuntimeError(
+        "AMAP_KEY environment variable not set. "
+        "Copy .env.example to .env and set your AMap Web Service API Key."
+    )
 SEARCH_RADIUS = 15  # km
 
 def geocode(address):

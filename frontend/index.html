@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -433,7 +433,7 @@ function doPlanTrip() {
     showTripRoute(d);
   }).catch(function(e){
     document.getElementById("tripBtn").disabled = false;
-    document.getElementById("tripStatus").textContent = "请求失败";
+    document.getElementById("tripStatus").textContent = "请求失败，请检查网络或服务器";
   });
 }
 function showTripRoute(d) {

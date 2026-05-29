@@ -1,4 +1,4 @@
-var clusterer = null;
+﻿var clusterer = null;
 var map, allPois = [], markers = [], filterLevel, filterType, filterKeyword;
 var API_BASE = location.origin + location.pathname.replace(/\/$/, "").replace(/\/index\.html$/, "");
 var AMAP_KEY = '6341f96e11ef424295330e635f174132';
@@ -16,21 +16,22 @@ function initMap() {
   loadData();
 }
 
+function status(msg) { var el=document.getElementById("status"); if(el) el.textContent=msg; }
 function loadData() {
   fetch(API_BASE + "/api/pois?page_size=4000")
     .then(function(r){ return r.json(); })
     .then(function(d){ allPois = d.results || []; renderMap(); })
-    .catch(function(e){ console.log(e); });
+    .catch(function(e){ status("数据加载失败: "+e.message); console.error(e); });
 }
 
 function getIconStyle(p) {
-  if (p.rating && p.rating.indexOf("街区") >= 0) return { color: "#9b59b6", label: "街", size: 28 };
+  if (p.rating && p.rating.indexOf("琛楀尯") >= 0) return { color: "#9b59b6", label: "琛?, size: 28 };
   if (p.type === "food") return { color: "#e67e22", label: "F", size: 26 };
   if (p.rating === "5A") return { color: "#c0392b", label: "5", size: 32 };
   if (p.rating === "4A") return { color: "#e74c3c", label: "4", size: 28 };
   if (p.rating === "3A") return { color: "#e67e22", label: "3", size: 24 };
   if (p.rating === "2A") return { color: "#3498db", label: "2", size: 22 };
-  if (p.type === "scenic") return { color: "#4361ee", label: "景", size: 26 };
+  if (p.type === "scenic") return { color: "#4361ee", label: "鏅?, size: 26 };
   return { color: "#4361ee", label: "S", size: 26 };
 }
 
@@ -64,13 +65,13 @@ function renderMap() {
 function filterData() {
   var arr = allPois;
   if (filterLevel && filterLevel !== "all") {
-    if (filterLevel === "leisure") arr = arr.filter(function(p){return p.rating && p.rating.indexOf("街区")>=0;});
+    if (filterLevel === "leisure") arr = arr.filter(function(p){return p.rating && p.rating.indexOf("琛楀尯")>=0;});
     else arr = arr.filter(function(p){return p.rating === filterLevel;});
   }
   if (filterType && filterType !== "all") {
-    if (filterType === "scenic") arr = arr.filter(function(p){return p.type === "scenic" && (!p.rating || p.rating.indexOf("街区")<0);});
+    if (filterType === "scenic") arr = arr.filter(function(p){return p.type === "scenic" && (!p.rating || p.rating.indexOf("琛楀尯")<0);});
     else if (filterType === "food") arr = arr.filter(function(p){return p.type === "food";});
-    else if (filterType === "leisure") arr = arr.filter(function(p){return p.rating && p.rating.indexOf("街区")>=0;});
+    else if (filterType === "leisure") arr = arr.filter(function(p){return p.rating && p.rating.indexOf("琛楀尯")>=0;});
   }
   if (filterKeyword) {
     var kw = filterKeyword.toLowerCase();
@@ -81,9 +82,9 @@ function filterData() {
 
 function updateStats(arr) {
   document.getElementById("ct").textContent = arr.length;
-  document.getElementById("cs").textContent = arr.filter(function(p){return p.type==="scenic" && (!p.rating || p.rating.indexOf("街区")<0);}).length;
+  document.getElementById("cs").textContent = arr.filter(function(p){return p.type==="scenic" && (!p.rating || p.rating.indexOf("琛楀尯")<0);}).length;
   document.getElementById("cf").textContent = arr.filter(function(p){return p.type==="food";}).length;
-  document.getElementById("cl").textContent = arr.filter(function(p){return p.rating && p.rating.indexOf("街区")>=0;}).length;
+  document.getElementById("cl").textContent = arr.filter(function(p){return p.rating && p.rating.indexOf("琛楀尯")>=0;}).length;
 }
 
 function esc(s) { if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

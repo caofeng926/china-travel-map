@@ -74,6 +74,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Security-Policy", csp)
         if self.path.endswith('.html') or self.path == '/':
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+        if self.path.endswith('.js'):
+            self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+        if self.path.endswith('.css'):
+            self.send_header('Content-Type', 'text/css; charset=utf-8')
         super().end_headers()
 
     def _json(self, data, status=200):
