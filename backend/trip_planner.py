@@ -1,16 +1,19 @@
-﻿"""Trip Planner - Route planning & POI along route search"""
+"""Trip Planner - Route planning & POI along route search"""
 import json, urllib.request, urllib.parse, math, time, os
 from database import get_conn, haversine, DB_PATH
 
-AMAP_KEY = os.environ.get("AMAP_KEY")
-if not AMAP_KEY:
-    raise RuntimeError(
-        "AMAP_KEY environment variable not set. "
-        "Copy .env.example to .env and set your AMap Web Service API Key."
-    )
+AMAP_KEY = os.environ.get("AMAP_KEY", "")
 SEARCH_RADIUS = 15  # km
 
+def _require_amap_key():
+    if not AMAP_KEY:
+        raise RuntimeError(
+            "AMAP_KEY environment variable not set. "
+            "Copy .env.example to .env and set your AMap Web Service API Key."
+        )
+
 def geocode(address):
+    _require_amap_key()
     url = f"https://restapi.amap.com/v3/geocode/geo?key={AMAP_KEY}&address={urllib.parse.quote(address)}&output=JSON"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -24,6 +27,7 @@ def geocode(address):
     return None, None, address
 
 def get_driving_route(origin_lat, origin_lng, dest_lat, dest_lng):
+    _require_amap_key()
     origin = f"{origin_lng},{origin_lat}"
     dest = f"{dest_lng},{dest_lat}"
     url = (f"https://restapi.amap.com/v3/direction/driving?key={AMAP_KEY}"
@@ -50,6 +54,7 @@ def get_driving_route(origin_lat, origin_lng, dest_lat, dest_lng):
     return None
 
 def get_transit_route(origin_lat, origin_lng, dest_lat, dest_lng, city=""):
+    _require_amap_key()
     origin = f"{origin_lng},{origin_lat}"
     dest = f"{dest_lng},{dest_lat}"
     url = (f"https://restapi.amap.com/v3/direction/transit/integrated?key={AMAP_KEY}"
@@ -106,36 +111,27 @@ def find_pois_along_route(polyline):
     conn = get_conn()
     seen = set()
     pois = []
-
-    # Compute bounding box covering all samples with SEARCH_RADIUS padding
     lats = [p[0] for p in samples]
     lngs = [p[1] for p in samples]
     min_lat, max_lat = min(lats), max(lats)
     min_lng, max_lng = min(lngs), max(lngs)
-    # 1 deg lat ~ 111km, 1 deg lng ~ 111*cos(lat) km
     avg_lat = (min_lat + max_lat) / 2
-    dlat = SEARCH_RADIUS / 111.0 + 0.5  # extra padding
+    dlat = SEARCH_RADIUS / 111.0 + 0.5
     dlng = SEARCH_RADIUS / (111.0 * math.cos(math.radians(avg_lat))) + 0.5
     min_lat -= dlat
     max_lat += dlat
     min_lng -= dlng
     max_lng += dlng
-
-    # Fetch attractions in bounding box
     cur = conn.execute(
         "SELECT id,name,rating,city,province,address,lat,lng,description FROM attractions WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?",
         (min_lat, max_lat, min_lng, max_lng)
     )
     attraction_rows = cur.fetchall()
-    
-    # Fetch foods in bounding box
     cur2 = conn.execute(
         "SELECT id,name,city,province,lat,lng,description,address,shop_name FROM foods WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?",
         (min_lat, max_lat, min_lng, max_lng)
     )
     food_rows = cur2.fetchall()
-
-    # Now check each sample against pre-filtered data
     for lat, lng in samples:
         for row in attraction_rows:
             d = dict(row)
