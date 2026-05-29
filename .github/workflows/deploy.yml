@@ -16,8 +16,6 @@ jobs:
           python-version: "3.11"
       - name: Run backend tests
         run: |
-          python -c "import sys; print(sys.version)"
-          python -c "import os; print(os.getcwd()); print(os.listdir('backend'))"
           python -m py_compile backend/test_api.py
           python backend/test_api.py -v
       - name: Check Python syntax
@@ -40,13 +38,14 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            cd /opt
-            if [ -d china-travel-map ]; then
-              cd china-travel-map && git pull
-            else
-              git clone https://github.com/caofeng926/china-travel-map.git
-              cd china-travel-map
-            fi
+            set -e
+            export AMAP_KEY="${{ secrets.AMAP_KEY }}"
+            cd /opt/china-travel-map
+            git pull
             pkill -f "python3.*server.py" 2>/dev/null || true
-            nohup python3 backend/server.py > server.log 2>&1 &
+            sleep 1
+            cd backend
+            nohup python3 server.py > ../server.log 2>&1 &
+            sleep 2
+            curl -s http://127.0.0.1:8765/api/health || echo "Health check failed, check server.log"
             echo "Deployed!"
