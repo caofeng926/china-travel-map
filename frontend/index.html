@@ -371,8 +371,23 @@ function setupUI(){
     btn.onclick=function(){
       btns.forEach(function(b){b.classList.remove("active")});
       this.classList.add("active");
-      currentFilter=this.getAttribute("data-type");
-      refreshMarkers();
+      var ft=this.getAttribute("data-type");
+      currentFilter=ft;
+      // For type-specific filters, fetch from server to get full data
+      var needFetch=false,params="";
+      if(ft==="food"){needFetch=true;params="type=food&page_size=2000"}
+      else if(ft==="world"){needFetch=true;params="rating=%E4%B8%96%E7%95%8C%E9%81%97%E4%BA%A7&page_size=500"}
+      else if(ft==="resort"){needFetch=true;params="rating=%E5%9B%BD%E5%AE%B6%E7%BA%A7%E6%97%85%E6%B8%B8%E5%BA%A6%E5%81%87%E5%8C%BA&page_size=500"}
+      else if(ft==="leisure"){needFetch=true;params="rating=%E8%A1%97%E5%8C%BA&page_size=500"}
+      if(needFetch){
+        status("\u52a0\u8f7d\u4e2d...");
+        fetchRetry(API_BASE+"/api/pois?"+params,3,1000)
+          .then(function(r){return r.json()})
+          .then(function(d){allPois=d.results||[];console.log("Loaded "+allPois.length+" for "+ft);refreshMarkers();})
+          .catch(function(e){status("\u52a0\u8f7d\u5931\u8d25: "+e.message)});
+      }else{
+        refreshMarkers();
+      }
     };
   });
   document.getElementById("kw").oninput=function(){
