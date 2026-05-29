@@ -31,13 +31,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             p = parse_qs(urlparse(self.path).query)
             def g(k, d=None): return p.get(k, [d])[0]
             self._json(search_pois(
-                compact = g("compact", "1") == "1",
+                compact = g("compact", "1") == "1" or page_size > 2000,
                 center_lat=_sf(g("lat")),
                 center_lng=_sf(g("lng")),
                 radius_km=_sf(g("radius"), 500),
                 rating=g("rating"), type_filter=g("type"),
                 keyword=g("keyword"), province=g("province"), city=g("city"),
-                page=_si(g("page"), 1), page_size=_si(g("page_size"), 500)
+                page=_si(g("page"), 1), page_size=min(_si(g("page_size"), 500), 5000)
             ))
         elif self.path.startswith("/api/plan_trip"):
             p = parse_qs(urlparse(self.path).query)
