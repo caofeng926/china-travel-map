@@ -142,7 +142,7 @@ function fetchRetry(url, retries, delay){
 
 window._AMapSecurityConfig={securityJsCode:"b8af7f12aafdc31fe67ee671a6871dd6"};window.AMapSecurityConfig=window._AMapSecurityConfig;
 var AMAP_KEY="6341f96e11ef424295330e635f174132";
-var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false,clusterer=null,allMarkers=[];
+var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false;
 var userPosition=null;
 function getDistance(lat1,lng1,lat2,lng2){
   var R=6371000;
@@ -237,8 +237,12 @@ function updateClusterer(pois){
   if(isTripMode||!map){return}
   var list=pois||filterData();
   status("正在渲染 "+list.length+" 个标记...");
-  if(clusterer){clusterer.clearMarkers();clusterer.setMap(null)}
-  allMarkers=[];
+  // \u6e05除旧标记
+  if(window._mk){
+    window._mk.forEach(function(m){m.setMap(null)});
+    window._mk=null;
+  }
+  var markers=[];
   for(var i=0;i<list.length;i++){
     var p=list[i],st=iconStyle(p);
     var m=new AMap.Marker({
@@ -257,17 +261,12 @@ function updateClusterer(pois){
       c+='<p style="font-size:11px;color:#999">'+esc(d.province||"")+' '+esc(d.city||"")+'</p></div>';
       new AMap.InfoWindow({content:c,offset:new AMap.Pixel(0,-28)}).open(map,this.getPosition());
     });
-    allMarkers.push(m);
+    markers.push(m);
   }
-  // \u4f7f\u7528 MarkerClusterer \u5feb\u901f\u6e32\u67d3
-  if(typeof AMap.MarkerClusterer==="undefined"){
-    AMap.plugin("AMap.MarkerClusterer",function(){doCluster(allMarkers,list.length)});
-  }else{doCluster(allMarkers,list.length);}
-}
-function doCluster(marks,count){
-  if(clusterer){clusterer.clearMarkers();clusterer.setMap(null)}
-  clusterer=new AMap.MarkerClusterer(map,marks,{gridSize:80,maxZoom:14,averageCenter:true,zoomOnClick:true});
-  status("显示了 "+count+" 个标记");
+  // \u4e00次性添加所有标记\uff08比原来批量延迟快多了\uff09
+  map.add(markers);
+  window._mk=markers;
+  status("显示了 "+markers.length+" 个标记");
 }
 function filterData(){
   var arr=allPois;
