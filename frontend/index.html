@@ -126,6 +126,12 @@ var stEl=document.getElementById("status");
 var API_BASE = location.origin + location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
 function status(m){stEl.textContent=m;console.log(m)}
 
+function hidePL(){
+  var el=document.getElementById("pl");
+  if(el){el.style.display="none"}
+}
+
+
 function fetchRetry(url, retries, delay){
   return fetch(url).then(function(r){
     if(!r.ok) throw new Error('HTTP '+r.status);
@@ -183,6 +189,7 @@ window._onAmapLoad=function(){status("加载地图...");createMap()};
 function createMap(){
   try{
     map=new AMap.Map("map",{center:[109.5,36.5],zoom:5,mapStyle:"amap://styles/light"});
+    hidePL();
     status("地图OK，加载数据...");
   // 添加定位控件
   AMap.plugin("AMap.Geolocation",function(){
