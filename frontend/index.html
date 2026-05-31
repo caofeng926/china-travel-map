@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -58,8 +58,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   #panel h2{padding:8px 14px;border-radius:12px 12px 0 0}
   #panel h2 .tg{display:block;font-size:16px}
   .handle-bar{width:36px;height:4px;background:#ddd;border-radius:2px;margin:6px auto 0;display:block}
-  
-padding:6px 8px;gap:3px}
+  #stats{padding:6px 8px;gap:3px}
   #stats>div{padding:3px 0}
   #stats .n{font-size:15px}
   #stats .l{font-size:9px}
@@ -69,8 +68,7 @@ padding:6px 8px;gap:3px}
   #list{max-height:40vh}
   #list .item{padding:6px 6px;font-size:12px}
   #panel.collapsed #filters,#panel.collapsed #search,#panel.collapsed #list{display:none}
-  #panel.collapsed 
-padding:4px 8px}
+  #panel.collapsed #stats{padding:4px 8px}
   #panel.collapsed #stats .n{font-size:14px}
 }
 
@@ -170,8 +168,8 @@ function togglePanel(){
 // Desktop: panel always expanded
   if(isMobile){
   panel.classList.add("collapsed");
-  document.querySelector("#panel h2").onclick=togglePanel;
 }
+  document.querySelector("#panel h2").onclick=togglePanel;
 
 window._onAmapLoad=function(){status("加载地图...");createMap()};
 (function(){
@@ -403,7 +401,8 @@ function setupUI(){
     updateStats(filtered);renderList(filtered.slice(0,100));
     status("搜索: "+filtered.length+" 个结果");
   };
-  function doLocate(){
+}
+function doLocate(){
   if(!navigator.geolocation){status("浏览器不支持定位");return}
   status("正在定位...");
   navigator.geolocation.getCurrentPosition(function(pos){
@@ -499,7 +498,6 @@ window.addEventListener("resize",function(){
     if(isMobile&&!panel.classList.contains("collapsed"))panel.classList.add("collapsed");
     MAX_VISIBLE=isMobile?300:600;
   });
-}
 </script>
 </body>
 </html>
