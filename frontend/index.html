@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>中国旅游地图</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box}\n/* Loading overlay */\n#pl{position:absolute;z-index:2000;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center}\n#pl .loading{text-align:center;font-size:14px;color:#666}\n#pl .spinner{width:32px;height:32px;border:3px solid #eee;border-top-color:#c0392b;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}\n@keyframes spin{to{transform:rotate(360deg)}}\n
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 #map{width:100%;height:100%;position:absolute;top:0;left:0;z-index:1}
 #locateBtn:hover{background:#f0f0f0}
@@ -88,6 +88,7 @@ padding:4px 8px}
 </head>
 <body>
 <div id="map"></div>
+<div id="pl"></div>
 <button id="toggleBtn" onclick="togglePanel()">☰</button>
 <button id="locateBtn" onclick="doLocate()">📍</button>
 <div id="panel">
@@ -166,8 +167,9 @@ function togglePanel(){
   panel.classList.toggle("collapsed");
   document.getElementById("toggleArrow").textContent=panel.classList.contains("collapsed")?"▼":"▲";
 }
-if(isMobile){
-  setTimeout(function(){panel.classList.add("collapsed")},500);
+// Desktop: panel always expanded
+  if(isMobile){
+  panel.classList.add("collapsed");
   document.querySelector("#panel h2").onclick=togglePanel;
 }
 
@@ -210,7 +212,7 @@ function createMap(){
     fetchRetry(API_BASE + "/api/pois?compact=0&page_size=5000", 3, retryDelay)
       .then(function(r){return r.json()})
       .then(function(d){
-        allPois=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");
+        allPois=d.results;allPoisFull=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");
         status("加载了 "+allPois.length+" 个POI");
         setupUI();updateStats(allPois);renderList(allPois.slice(0,100));
         map.on("moveend",refreshMarkers);map.on("zoomend",refreshMarkers);
@@ -314,7 +316,7 @@ function filterData(){
   var arr=allPois;
   if(currentFilter==="all")return arr;
   if(currentFilter==="food")return arr.filter(function(p){return p.type==="food"});
-  if(currentFilter==="leisure")return arr.filter(function(p){return p.rating&&p.rating.indexOf("街区")>=0});
+  if(currentFilter==="leisure")return arr.filter(function(p){return p.type==="scenic"&&(!p.rating||(p.rating.indexOf("街区")>=0))});
   if(currentFilter==="world")return arr.filter(function(p){return p.rating==="世界遗产"});
   if(currentFilter==="resort")return arr.filter(function(p){return p.rating==="国家级旅游度假区"});
   return arr.filter(function(p){return p.rating===currentFilter});
@@ -378,15 +380,14 @@ function setupUI(){
       if(ft==="food"){needFetch=true;params="type=food&page_size=2000"}
       else if(ft==="world"){needFetch=true;params="rating=%E4%B8%96%E7%95%8C%E9%81%97%E4%BA%A7&page_size=500"}
       else if(ft==="resort"){needFetch=true;params="rating=%E5%9B%BD%E5%AE%B6%E7%BA%A7%E6%97%85%E6%B8%B8%E5%BA%A6%E5%81%87%E5%8C%BA&page_size=500"}
-      else if(ft==="leisure"){needFetch=true;params="rating=%E8%A1%97%E5%8C%BA&page_size=500"}
-      if(needFetch){
+      else if(ft==="leisure"){needFetch=false}
+      if(!needFetch&&allPoisFull){allPois=allPoisFull;}if(needFetch){
         status("\u52a0\u8f7d\u4e2d...");
         fetchRetry(API_BASE+"/api/pois?"+params,3,1000)
           .then(function(r){return r.json()})
-          .then(function(d){allPois=d.results||[];console.log("Loaded "+allPois.length+" for "+ft);refreshMarkers();})
+          .then(function(d){allPois=d.results||[];console.log("Loaded "+allPois.length+" for "+ft);var f=filterData();updateStats(f);renderList(f.slice(0,100));refreshMarkers();})
           .catch(function(e){status("\u52a0\u8f7d\u5931\u8d25: "+e.message)});
-      }else{
-        refreshMarkers();
+      }else{var f=filterData();updateStats(f);renderList(f.slice(0,100));refreshMarkers();
       }
     };
   });

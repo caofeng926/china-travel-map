@@ -16,7 +16,7 @@ def _si(v, d=None):
     try: return int(v) if v is not None and v != "" else d
     except: return d
 
-HOST, PORT = "0.0.0.0", 8765
+HOST, PORT = "127.0.0.1", 8765
 FRONTEND = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
 # Security config
@@ -42,7 +42,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             p = parse_qs(urlparse(self.path).query)
             def g(k, d=None): return p.get(k, [d])[0]
             self._json(search_pois(
-                compact = g("compact", "1") == "1" or page_size > 2000,
+                compact = g("compact", "1") == "1",
                 center_lat=_sf(g("lat")),
                 center_lng=_sf(g("lng")),
                 radius_km=_sf(g("radius"), 500),
@@ -89,12 +89,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if not origin:
             return "*"
         for allowed in ALLOWED_ORIGINS:
-            if allowed and allowed.strip() and origin.startswith(allowed.strip()):
+            if allowed and allowed.strip() and origin == allowed.strip():
                 return origin
         return ""
 
     def _check_rate_limit(self):
-        ip = self.client_address[0]
+        ip = self.headers.get("X-Real-IP", self.client_address[0])
         now = time.time()
         if ip not in RATE_LIMIT:
             RATE_LIMIT[ip] = []
