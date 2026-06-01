@@ -3,7 +3,7 @@
 import urllib.request, ssl, json, time, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from database import get_conn
-KEY = os.environ.get("AMAP_KEY", "fc5ea342775f94afaf8aec42694fdb4c")
+KEY = os.environ.get("AMAP_KEY", "")
 ctx = ssl._create_unverified_context()
 hdr = {'User-Agent': 'Mozilla/5.0'}
 SEARCH_URL = 'https://restapi.amap.com/v3/place/text?'
