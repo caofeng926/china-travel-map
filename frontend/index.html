@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>中国旅游地图</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}\n/* Loading overlay */\n#pl{position:absolute;z-index:2000;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center}\n#pl .loading{text-align:center;font-size:14px;color:#666}\n#pl .spinner{width:32px;height:32px;border:3px solid #eee;border-top-color:#c0392b;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}\n@keyframes spin{to{transform:rotate(360deg)}}\n
+*{margin:0;padding:0;box-sizing:border-box}
+/* Loading overlay */
+#pl{position:absolute;z-index:2000;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center}
+#pl .loading{text-align:center;font-size:14px;color:#666}
+#pl .spinner{width:32px;height:32px;border:3px solid #eee;border-top-color:#c0392b;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#pl .retry-btn{margin-top:12px;padding:8px 20px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+#pl .progress-bar-wrap{margin-top:10px;width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden}
+#pl .progress-bar{height:100%;background:#c0392b;width:0;transition:width .3s}
+#pl .progress-text{margin-top:6px;font-size:12px;color:#999}\n
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 #map{width:100%;height:100%;position:absolute;top:0;left:0;z-index:1}
 #locateBtn:hover{background:#f0f0f0}
@@ -148,7 +157,7 @@ function fetchRetry(url, retries, delay){
 
 window._AMapSecurityConfig={securityJsCode:"b8af7f12aafdc31fe67ee671a6871dd6"};window.AMapSecurityConfig=window._AMapSecurityConfig;
 var AMAP_KEY="6341f96e11ef424295330e635f174132";
-var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false;
+var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false,mapInitialized=false;
 var userPosition=null;
 function getDistance(lat1,lng1,lat2,lng2){
   var R=6371000;
@@ -165,26 +174,68 @@ function getDistance(lat1,lng1,lat2,lng2){
 
 // Mobile panel
 var panel=document.getElementById("panel");
-var isMobile=window.innerWidth<768;
+function isMobile() { return window.innerWidth < 768; }
+function isPortrait() { return window.innerHeight > window.innerWidth; }
 
 function togglePanel(){
   panel.classList.toggle("collapsed");
   document.getElementById("toggleArrow").textContent=panel.classList.contains("collapsed")?"▼":"▲";
 }
-// Desktop: panel always expanded
-  if(isMobile){
+// Desktop: panel always expanded; mobile: collapsed by default
+if(isMobile()){
   panel.classList.add("collapsed");
 }
-  document.querySelector("#panel h2").onclick=togglePanel;
+document.querySelector("#panel h2").onclick=togglePanel;
 
-window._onAmapLoad=function(){status("加载地图...");createMap()};
-(function(){
-  var s=document.createElement("script");
-  s.src="https://webapi.amap.com/maps?v=2.0&key="+AMAP_KEY+"&callback=_onAmapLoad";
-  s.onerror=function(){status("高德地图加载失败")};
+var amapLoadTimeout = null;
+var amapLoadFailed = false;
+
+function showRetryBtn(msg) {
+  var el = document.getElementById("pl");
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div style="font-size:14px;color:#c0392b;margin-bottom:8px">' + (msg || "地图加载超时") + '</div><div style="font-size:12px;color:#888;margin-bottom:12px">请检查网络后重试</div><button class="retry-btn" onclick="retryLoad()">重新加载</button></div>';
+}
+
+function retryLoad() {
+  // Remove old script if exists
+  var old = document.getElementById("_amap_script");
+  if (old) old.parentNode.removeChild(old);
+  // Clear global state
+  window._onAmapLoad = function(){status("加载地图...");createMap()};
+  mapInitialized = false;
+  amapLoadFailed = false;
+  if (amapLoadTimeout) clearTimeout(amapLoadTimeout);
+  loadAmapJS();
+}
+
+function loadAmapJS() {
+  var el = document.getElementById("pl");
+  if (el) el.innerHTML = '<div class="loading"><div class="spinner"></div>正在加载地图...</div>';
+  var s = document.createElement("script");
+  s.id = "_amap_script";
+  s.src = "https://webapi.amap.com/maps?v=2.0&key=" + AMAP_KEY + "&callback=_onAmapLoad&t=" + Date.now();
+  s.onerror = function() {
+    amapLoadFailed = true;
+    showRetryBtn("高德地图加载失败");
+  };
   document.head.appendChild(s);
   status("加载高德地图SDK...");
-})();
+  // 15s timeout fallback
+  if (amapLoadTimeout) clearTimeout(amapLoadTimeout);
+  amapLoadTimeout = setTimeout(function() {
+    if (!mapInitialized && !amapLoadFailed) {
+      showRetryBtn("地图加载超时（网络较慢）");
+    }
+  }, 15000);
+}
+
+window._onAmapLoad = function() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+  if (amapLoadTimeout) clearTimeout(amapLoadTimeout);
+  status("加载地图...");createMap();
+};
+loadAmapJS();
 
 function createMap(){
   try{
@@ -213,17 +264,94 @@ function createMap(){
       }
     });
   });
-    var retryDelay = 1000;
-    fetchRetry(API_BASE + "/api/pois?compact=0&page_size=5000", 3, retryDelay)
-      .then(function(r){return r.json()})
-      .then(function(d){
-        allPois=d.results;allPoisFull=d.results;allStats=d;console.log("Loaded "+allPois.length+" POIs");
-        status("加载了 "+allPois.length+" 个POI");
-        setupUI();updateStats(allPois);renderList(allPois.slice(0,100));
-        updateClusterer();
-      })
-      .catch(function(e){status("数据加载失败: "+e.message)});
+
+    // Show loading progress
+    var el = document.getElementById("pl");
+    if (el) el.innerHTML = '<div class="loading"><div class="spinner"></div><div id="loadProgress">正在加载数据...</div><div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div><div class="progress-text" id="progressText">0%</div></div>';
+
+    loadPOIData();
   }catch(e){status("地图错误: "+e.message)}
+}
+
+var massMarksLayer = null;
+var allPoisFull = null;
+
+function loadPOIData() {
+  var pageSize = isMobile() ? 2000 : 4000;
+  fetch(API_BASE + "/api/pois?compact=1&page_size=" + pageSize)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(d){
+      allPois = d.results || [];
+      allPoisFull = allPois;
+      var total = d.total || allPois.length;
+      status("加载了 " + allPois.length + " 个POI（共" + total + "）");
+      setupUI(); updateStats(allPois); renderList(allPois.slice(0, 100));
+      renderMassMarks(allPois);
+      hidePL();
+    })
+    .catch(function(e){
+      showRetryBtn("数据加载失败: " + e.message);
+    });
+}
+
+function renderMassMarks(pois) {
+  if (!map || !pois || pois.length === 0) return;
+  // Remove old layer
+  if (massMarksLayer) { massMarksLayer.setMap(null); massMarksLayer = null; }
+  if (window._mk) { map.remove(window._mk); window._mk = null; }
+
+  // Use MassMarks for efficient rendering of thousands of points
+  var data = pois.map(function(p) {
+    return { lnglat: [p.lng, p.lat], name: p.name, rating: p.rating, type: p.type };
+  });
+
+  AMap.plugin("AMap.MassMarks", function() {
+    massMarksLayer = new AMap.MassMarks(data, {
+      url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZh0nMjAnPjxjaXJjbGUgY3g9IjEwIiBjeT0iMTAiIHI9IjgiIGZpbGw9IiNlNzRiM2MiLz48L3N2Zz4=",
+      anchor: new AMap.Pixel(10, 10),
+      size: new AMap.Size(20, 20),
+      opacity: 0.8,
+      cursor: "pointer"
+    });
+
+    var styles = {
+      "5A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZh0nMzAnPjxjaXJjbGUgY3g9IjE1IiBjeT0iMTUiIHI9IjEyIiBmaWxsPSIjYzAzOTJiIi8+PC9zdmc+", anchor: new AMap.Pixel(15, 15), size: new AMap.Size(30, 30) },
+      "4A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PjxjaXJjbGUgY3g9IjE0IiBjeT0iMTQiIHI9IjEwIiBmaWxsPSIjZTc0YzNjIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
+      "3A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSAyNCIgaGVpZ2h0PSAyNCI+PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjkiIGZpbGw9IiNlNjdlMjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      "food":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSAyNCIgaGVpZ2h0PSAyNCI+PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjkiIGZpbGw9IiNmMzljMTIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      "leisure":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSAyOCBoZWlnaHQ9IjI4Ij48Y2lyY2xlIGN4PSIxNCIgY3k9IjE0IiByPSIxMCIgZmlsbD0iIzliNTlCNiIvPjwvc3ZnPg==", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) }
+    };
+
+    massMarksLayer.setStyle(styles["5A"]); // default style
+
+    // Apply per-point style
+    var massData = pois.map(function(p) {
+      var key = p.type === "food" ? "food" :
+                (p.rating && p.rating.indexOf("街区") >= 0) ? "leisure" :
+                (p.rating === "5A") ? "5A" :
+                (p.rating === "4A") ? "4A" :
+                (p.rating === "3A") ? "3A" : null;
+      return { lnglat: [p.lng, p.lat], name: p.name, style: key || 0 };
+    });
+
+    massMarksLayer.setData(massData);
+    massMarksLayer.setStyles(styles);
+    massMarksLayer.setMap(map);
+
+    // Click on mass mark to show info
+    massMarksLayer.on("click", function(e) {
+      var d = e.data;
+      if (!d || !d.data) return;
+      var info = d.data;
+      var c = '<div style="min-width:200px;max-width:300px"><h3 style="font-size:14px;color:#c0392b;margin:0 0 4px">' + esc(info.name) + '</h3>';
+      if(info.rating) c += '<span style="font-size:11px;background:#c0392b;color:#fff;padding:1px 6px;border-radius:3px">' + esc(info.rating) + '</span> ';
+      c += '<p style="font-size:11px;color:#999">' + esc(info.province || "") + ' ' + esc(info.city || "") + '</p></div>';
+      map.setCenter(d.lnglat);
+      new AMap.InfoWindow({ content: c, offset: new AMap.Pixel(0, -20) }).open(map, d.lnglat);
+    });
+
+    status("显示了 " + pois.length + " 个标记（海量点模式）");
+  });
 }
 
 function iconStyle(p){
@@ -244,36 +372,7 @@ function updateClusterer(pois){
   if(isTripMode||!map){return}
   var list=pois||filterData();
   status("正在渲染 "+list.length+" 个标记...");
-  // \u6e05除旧标记
-  if(window._mk){
-    window._mk.forEach(function(m){m.setMap(null)});
-    window._mk=null;
-  }
-  var markers=[];
-  for(var i=0;i<list.length;i++){
-    var p=list[i],st=iconStyle(p);
-    var m=new AMap.Marker({
-      position:[p.lng,p.lat],
-      content:'<div style="background:#fff;border-radius:50%;border:2px solid '+st.color+';width:'+st.size+'px;height:'+st.size+'px;text-align:center;line-height:'+(st.size-4)+'px;font-weight:700;font-size:'+(st.size>28?13:10)+'px;color:'+st.color+';box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer">'+st.label+'</div>',
-      offset:new AMap.Pixel(-st.size/2,-st.size/2),
-      title:p.name,
-      extData:p
-    });
-    m.on("click",function(){
-      var d=this.getExtData();
-      var c='<div style="min-width:200px;max-width:300px"><h3 style="font-size:14px;color:#c0392b;margin:0 0 4px">'+esc(d.name)+'</h3>';
-      if(d.rating)c+='<span style="font-size:11px;background:#c0392b;color:#fff;padding:1px 6px;border-radius:3px">'+esc(d.rating)+'</span> ';
-      c+='<p style="font-size:12px;color:#555;margin:4px 0">'+esc(d.description||"")+'</p>';
-      if(d.address)c+='<p style="font-size:11px;color:#888">'+esc(d.address)+'</p>';
-      c+='<p style="font-size:11px;color:#999">'+esc(d.province||"")+' '+esc(d.city||"")+'</p></div>';
-      new AMap.InfoWindow({content:c,offset:new AMap.Pixel(0,-28)}).open(map,this.getPosition());
-    });
-    markers.push(m);
-  }
-  // \u4e00次性添加所有标记\uff08比原来批量延迟快多了\uff09
-  map.add(markers);
-  window._mk=markers;
-  status("显示了 "+markers.length+" 个标记");
+  renderMassMarks(list);
 }
 function filterData(){
   var arr=allPois;
@@ -311,7 +410,7 @@ function renderList(arr){
 }
 
 function esc(s){if(!s)return "";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
-function flyTo(lat,lng){if(map)map.setZoomAndCenter(14,[lng,lat]);if(isMobile&&!panel.classList.contains("collapsed"))togglePanel()}
+function flyTo(lat,lng){if(map)map.setZoomAndCenter(14,[lng,lat]);if(isMobile()&&!panel.classList.contains("collapsed"))togglePanel()}
 
 function setupUI(){
   var btns=document.querySelectorAll("#filters button");
@@ -457,9 +556,21 @@ function showTripDays(d) {
   document.getElementById("list").innerHTML = html;
 }
 window.addEventListener("resize",function(){
-    var wasMobile=isMobile;isMobile=window.innerWidth<768;
-    if(isMobile&&!panel.classList.contains("collapsed"))panel.classList.add("collapsed");
+    // Collapse panel on mobile when window resizes
+    if(isMobile() && !panel.classList.contains("collapsed")) {
+      panel.classList.add("collapsed");
+    }
   });
+// Handle orientation change on mobile
+window.addEventListener("orientationchange",function(){
+  setTimeout(function(){
+    if(isMobile() && !panel.classList.contains("collapsed")) {
+      panel.classList.add("collapsed");
+    }
+    // Re-render map to fix potential rendering issues after orientation change
+    if(map) map.resize();
+  }, 200);
+});
 </script>
 </body>
 </html>
