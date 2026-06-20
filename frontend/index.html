@@ -314,24 +314,25 @@ function renderMassMarks(pois) {
       cursor: "pointer"
     });
 
-    var styles = {
-      "5A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCI+PGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTIiIGZpbGw9IiNjMDM5MmIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(15, 15), size: new AMap.Size(30, 30) },
-      "4A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTAiIGZpbGw9IiNlNzRjM2MiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
-      "3A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iI2U2N2UyMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
-      "food":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iI2YzOWMxMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
-      "leisure":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTAiIGZpbGw9IiM5YjU5YjYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) }
-    };
+    var styles = [
+      { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCI+PGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTIiIGZpbGw9IiNjMDM5MmIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(15, 15), size: new AMap.Size(30, 30) },
+      { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTAiIGZpbGw9IiNlNzRjM2MiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
+      { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iI2U2N2UyMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iI2YzOWMxMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTAiIGZpbGw9IiM5YjU5YjYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) }
+    ];
 
     // Set per-point style (single default style)
 
     // Apply per-point style
     var massData = pois.map(function(p) {
-      var key = p.type === "food" ? "food" :
-                (p.rating && p.rating.indexOf("街区") >= 0) ? "leisure" :
-                (p.rating === "5A") ? "5A" :
-                (p.rating === "4A") ? "4A" :
-                (p.rating === "3A") ? "3A" : null;
-      return { lnglat: [p.lng, p.lat], name: p.name, style: key || 0 };
+      var idx = 0;
+      if (p.type === "food") idx = 3;
+      else if (p.rating && p.rating.indexOf("街区") >= 0) idx = 4;
+      else if (p.rating === "5A") idx = 0;
+      else if (p.rating === "4A") idx = 1;
+      else if (p.rating === "3A") idx = 2;
+      return { lnglat: [p.lng, p.lat], name: p.name, style: idx };
     });
 
     massMarksLayer.setData(massData);
