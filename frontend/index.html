@@ -340,14 +340,17 @@ function renderMassMarks(pois) {
 
     // Click on mass mark to show info
     massMarksLayer.on("click", function(e) {
-      var d = e.data;
-      if (!d || !d.data) return;
-      var info = d.data;
+      // v2.0: e.data is the clicked item directly
+      var info = e.data;
+      if (!info || !info.name) return;
+      var lnglat = info.lnglat;
       var c = '<div style="min-width:200px;max-width:300px"><h3 style="font-size:14px;color:#c0392b;margin:0 0 4px">' + esc(info.name) + '</h3>';
       if(info.rating) c += '<span style="font-size:11px;background:#c0392b;color:#fff;padding:1px 6px;border-radius:3px">' + esc(info.rating) + '</span> ';
       c += '<p style="font-size:11px;color:#999">' + esc(info.province || "") + ' ' + esc(info.city || "") + '</p></div>';
-      map.setCenter(d.lnglat);
-      new AMap.InfoWindow({ content: c, offset: new AMap.Pixel(0, -20) }).open(map, d.lnglat);
+      if (lnglat) {
+        map.setCenter(lnglat);
+        new AMap.InfoWindow({ content: c, offset: new AMap.Pixel(0, -20) }).open(map, lnglat);
+      }
     });
 
     status("显示了 " + pois.length + " 个标记（海量点模式）");
