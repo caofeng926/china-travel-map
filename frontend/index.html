@@ -307,7 +307,7 @@ function renderMassMarks(pois) {
 
   AMap.plugin("AMap.MassMarks", function() {
     massMarksLayer = new AMap.MassMarks(data, {
-      url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZh0nMjAnPjxjaXJjbGUgY3g9IjEwIiBjeT0iMTAiIHI9IjgiIGZpbGw9IiNlNzRiM2MiLz48L3N2Zz4=",
+      url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iOCIgZmlsbD0iI2U3NGIzYyIvPjwvc3ZnPg==",
       anchor: new AMap.Pixel(10, 10),
       size: new AMap.Size(20, 20),
       opacity: 0.8,
@@ -315,14 +315,14 @@ function renderMassMarks(pois) {
     });
 
     var styles = {
-      "5A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZh0nMzAnPjxjaXJjbGUgY3g9IjE1IiBjeT0iMTUiIHI9IjEyIiBmaWxsPSIjYzAzOTJiIi8+PC9zdmc+", anchor: new AMap.Pixel(15, 15), size: new AMap.Size(30, 30) },
-      "4A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PjxjaXJjbGUgY3g9IjE0IiBjeT0iMTQiIHI9IjEwIiBmaWxsPSIjZTc0YzNjIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
-      "3A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSAyNCIgaGVpZ2h0PSAyNCI+PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjkiIGZpbGw9IiNlNjdlMjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
-      "food":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSAyNCIgaGVpZ2h0PSAyNCI+PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjkiIGZpbGw9IiNmMzljMTIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
-      "leisure":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSAyOCBoZWlnaHQ9IjI4Ij48Y2lyY2xlIGN4PSIxNCIgY3k9IjE0IiByPSIxMCIgZmlsbD0iIzliNTlCNiIvPjwvc3ZnPg==", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) }
+      "5A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCI+PGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTIiIGZpbGw9IiNjMDM5MmIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(15, 15), size: new AMap.Size(30, 30) },
+      "4A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTAiIGZpbGw9IiNlNzRjM2MiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
+      "3A":  { url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iI2U2N2UyMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      "food":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iI2YzOWMxMiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=", anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      "leisure":{ url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTAiIGZpbGw9IiM5YjU5YjYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+", anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) }
     };
 
-    massMarksLayer.setStyle(styles["5A"]); // default style
+    // Set per-point style (single default style)
 
     // Apply per-point style
     var massData = pois.map(function(p) {
