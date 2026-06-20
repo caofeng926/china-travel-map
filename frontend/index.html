@@ -278,7 +278,7 @@ var allPoisFull = null;
 
 function loadPOIData() {
   var pageSize = isMobile() ? 2000 : 4000;
-  fetch(API_BASE + "/api/pois?compact=1&page_size=" + pageSize)
+  fetch(API_BASE + "/api/pois?compact=0&page_size=" + pageSize)
     .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(function(d){
       allPois = d.results || [];
@@ -340,13 +340,18 @@ function renderMassMarks(pois) {
 
     // Click on mass mark to show info
     massMarksLayer.on("click", function(e) {
-      // v2.0: e.data is the clicked item directly
       var info = e.data;
       if (!info || !info.name) return;
       var lnglat = info.lnglat;
-      var c = '<div style="min-width:200px;max-width:300px"><h3 style="font-size:14px;color:#c0392b;margin:0 0 4px">' + esc(info.name) + '</h3>';
-      if(info.rating) c += '<span style="font-size:11px;background:#c0392b;color:#fff;padding:1px 6px;border-radius:3px">' + esc(info.rating) + '</span> ';
-      c += '<p style="font-size:11px;color:#999">' + esc(info.province || "") + ' ' + esc(info.city || "") + '</p></div>';
+      var ratingColor = info.rating === "5A" ? "#c0392b" : info.rating === "4A" ? "#27ae60" : info.rating === "3A" ? "#e67e22" : "#7f8c8d";
+      var c = '<div style="min-width:240px;max-width:320px;padding:4px">';
+      c += '<h3 style="font-size:15px;color:#2c3e50;margin:0 0 8px;font-weight:600">' + esc(info.name) + '</h3>';
+      if(info.rating) c += '<div style="margin-bottom:6px"><span style="font-size:11px;background:' + ratingColor + ';color:#fff;padding:2px 8px;border-radius:3px;font-weight:bold">'+esc(info.rating)+'</span></div>';
+      if(info.address) c += '<div style="font-size:12px;color:#555;margin-bottom:4px;line-height:1.5">&#128205; ' + esc(info.address) + '</div>';
+      if(info.province || info.city) c += '<div style="font-size:11px;color:#999;margin-bottom:4px">' + esc((info.province||"") + " " + (info.city||"")) + '</div>';
+      if(info.phone) c += '<div style="font-size:12px;color:#2980b9;margin-top:6px">&#128222; <a href="tel:' + info.phone.replace(/[^0-9+\-]/g, "") + '" style="color:#2980b9;text-decoration:none">' + esc(info.phone) + '</a></div>';
+      if(info.description) c += '<div style="font-size:11px;color:#7f8c8d;margin-top:6px;padding-top:6px;border-top:1px solid #eee">' + esc(info.description) + '</div>';
+      c += '</div>';
       if (lnglat) {
         map.setCenter(lnglat);
         new AMap.InfoWindow({ content: c, offset: new AMap.Pixel(0, -20) }).open(map, lnglat);

@@ -42,7 +42,7 @@ def haversine(lat1, lng1, lat2, lng2):
 def search_pois(center_lat=None, center_lng=None, radius_km=None, rating=None, type_filter=None, keyword=None, province=None, city=None, page=1, page_size=100, compact=False):
     conn = get_conn()
     results = []
-    q = "SELECT * FROM attractions WHERE 1=1"
+    q = "SELECT id,name,rating,city,province,address,lat,lng,description,recommend,source,phone FROM attractions WHERE 1=1"
     p = []
     if rating and rating not in ("all", ""):
         q += " AND rating = ?"
@@ -66,7 +66,7 @@ def search_pois(center_lat=None, center_lng=None, radius_km=None, rating=None, t
             if d["distance"] > radius_km:
                 continue
         results.append(d)
-    fq = "SELECT * FROM foods WHERE 1=1"
+    fq = "SELECT id,name,city,province,lat,lng,description,address,shop_name,recommend_dish,phone,source FROM foods WHERE 1=1"
     fp = []
     if keyword:
         fq += " AND (name LIKE ? OR city LIKE ?)"
@@ -102,9 +102,9 @@ def get_stats(center_lat=None, center_lng=None, radius_km=None):
     return {"total": scenic + food, "scenic": scenic, "food": food}
 def insert_attractions(items):
     conn = get_conn()
-    sql = "INSERT OR IGNORE INTO attractions(name,rating,city,province,address,lat,lng,description,recommend,source) VALUES(?,?,?,?,?,?,?,?,?,?)"
+    sql = "INSERT OR IGNORE INTO attractions(name,rating,city,province,address,lat,lng,description,recommend,source,phone) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
     for i in items:
-        conn.execute(sql, (i.get("name",""), i.get("rating",""), i.get("city",""), i.get("province",""), i.get("address",""), i.get("lat",0), i.get("lng",0), i.get("description",""), i.get("recommend",""), i.get("source","manual")))
+        conn.execute(sql, (i.get("name",""), i.get("rating",""), i.get("city",""), i.get("province",""), i.get("address",""), i.get("lat",0), i.get("lng",0), i.get("description",""), i.get("recommend",""), i.get("source","manual"), i.get("phone","")))
     conn.commit()
     conn.close()
 def insert_foods(items):
