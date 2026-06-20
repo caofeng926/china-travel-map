@@ -81,6 +81,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             insert_attractions(body.get("attractions",[]))
             insert_foods(body.get("foods",[]))
             self._json({"ok":True, "imported": len(body.get("attractions",[])) + len(body.get("foods",[]))})
+
+        elif self.path == "/api/deploy":
+            # Deploy endpoint - pull latest code and restart
+            token = self.headers.get("Authorization", "").replace("Bearer ", "")
+            if not SEED_TOKEN or token != SEED_TOKEN:
+                self._json({"error": "unauthorized"}, 401)
+                return
+            import subprocess as _sp
+            cmds = []
+            cmds.append("cd /opt/china-travel-map && git pull 2>&1 || true")
+            cmds.append("systemctl restart china-travel-map 2>&1 || nginx -s reload 2>&1 || true")
+            results = {}
+            for i, cmd in enumerate(cmds):
+                try:
+                    r = _sp.check_output(cmd, shell=True, timeout=60, stderr=_sp.STDOUT)
+                    results[f"cmd{i}"] = r.decode("utf-8", "replace")
+                except Exception as e:
+                    results[f"cmd{i}_error"] = str(e)
+            self._json({"ok": True, "results": results})
+
         else:
             self._json({"error":"not found"}, 404)
 
