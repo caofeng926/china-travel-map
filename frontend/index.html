@@ -324,7 +324,7 @@ function renderMassMarks(pois) {
 
     // Set per-point style (single default style)
 
-    // Apply per-point style
+    // Apply per-point style with full POI data for click popup
     var massData = pois.map(function(p) {
       var idx = 0;
       if (p.type === "food") idx = 3;
@@ -332,7 +332,17 @@ function renderMassMarks(pois) {
       else if (p.rating === "5A") idx = 0;
       else if (p.rating === "4A") idx = 1;
       else if (p.rating === "3A") idx = 2;
-      return { lnglat: [p.lng, p.lat], name: p.name, style: idx };
+      return {
+        lnglat: [p.lng, p.lat],
+        name: p.name,
+        style: idx,
+        rating: p.rating,
+        address: p.address,
+        province: p.province,
+        city: p.city,
+        phone: p.phone,
+        description: p.description
+      };
     });
 
     massMarksLayer.setData(massData);
