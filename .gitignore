@@ -98,3 +98,12 @@ push_github*.py
 backend/srv*.log
 backend/out.log
 backend/err.log
+
+# Local deploy keys (sensitive, do not commit)
+github_push_key
+github_push_key.pub
+deploy_key
+deploy_key.pub
+github_deploy_key
+github_deploy_key.pub
+old_deploy_key.pub
