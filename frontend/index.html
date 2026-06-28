@@ -485,7 +485,7 @@ function doLocate(){
     userPosition={lat:lat,lng:lng};
     if(map){
       map.setZoomAndCenter(15,[lng,lat]);
-      new AMap.Marker({position:[lng,lat],content:"<div style="background:#4285f4;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>",offset:new AMap.Pixel(-8,-8)}).setMap(map);
+      new AMap.Marker({position:[lng,lat],content:'<div style="background:#4285f4;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>',offset:new AMap.Pixel(-8,-8)}).setMap(map);
     }
     status("定位成功: " + (label||"定位点"));
   }
