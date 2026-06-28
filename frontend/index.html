@@ -243,27 +243,25 @@ function createMap(){
     hidePL();
     status("地图OK，加载数据...");
   // 添加定位控件
-  AMap.plugin("AMap.Geolocation",function(){
-    var geolocation=new AMap.Geolocation({
-      enableHighAccuracy:true,
-      timeout:10000,
-      buttonPosition:"RB",
-      buttonOffset:window.innerWidth<768?new AMap.Pixel(12,110):new AMap.Pixel(12,60),
-      zoomToAccuracy:true,
-      showButton:true,
-      showMarker:true,
-      showCircle:true,
-      panToLocation:true
-    });
-    map.addControl(geolocation);
-    geolocation.getCurrentPosition(function(status,result){
-      if(status==="complete"){
-        console.log("定位成功:",result);
-      }else{
-        console.log("定位失败:",result);
+  // Skip auto-locate on HTTP (geolocation requires HTTPS)
+  // Use IP-based geolocation as fallback - works on HTTP
+  fetch('https://restapi.amap.com/v3/ip?key=' + AMAP_KEY)
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data && data.status === "1" && data.rectangle) {
+        var rect = data.rectangle.split(";");
+        if(rect.length === 2) {
+          var lng1 = parseFloat(rect[0].split(",")[0]);
+          var lat1 = parseFloat(rect[0].split(",")[1]);
+          var lng2 = parseFloat(rect[1].split(",")[0]);
+          var lat2 = parseFloat(rect[1].split(",")[1]);
+          var centerLng = (lng1 + lng2) / 2;
+          var centerLat = (lat1 + lat2) / 2;
+          userPosition = {lat: centerLat, lng: centerLng, fromIP: true, province: data.province, city: data.city};
+          console.log("IP定位成功:", data.province, data.city);
+        }
       }
-    });
-  });
+    }).catch(function(e){console.log("IP定位失败:", e);});
 
     // Show loading progress
     var el = document.getElementById("pl");
@@ -483,17 +481,47 @@ function setupUI(){
   };
 }
 function doLocate(){
-  if(!navigator.geolocation){status("浏览器不支持定位");return}
-  status("正在定位...");
-  navigator.geolocation.getCurrentPosition(function(pos){
-    var lat=pos.coords.latitude,lng=pos.coords.longitude;
+  function showOnMap(lat,lng,label){
     userPosition={lat:lat,lng:lng};
     if(map){
       map.setZoomAndCenter(15,[lng,lat]);
-      new AMap.Marker({position:[lng,lat],content:"<div style=\"background:#4285f4;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)\"></div>",offset:new AMap.Pixel(-8,-8)}).setMap(map);
+      new AMap.Marker({position:[lng,lat],content:"<div style="background:#4285f4;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>",offset:new AMap.Pixel(-8,-8)}).setMap(map);
     }
-    status("定位成功");
-  },function(err){status("定位失败: "+err.message)},{enableHighAccuracy:true,timeout:10000});
+    status("定位成功: " + (label||"定位点"));
+  }
+  status("正在定位...");
+  if(navigator.geolocation && window.isSecureContext){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      showOnMap(pos.coords.latitude, pos.coords.longitude, "浏览器定位");
+    },function(err){
+      console.log("Browser geo failed:", err);
+      doIPLocate(showOnMap);
+    },{enableHighAccuracy:true,timeout:5000});
+  } else {
+    doIPLocate(showOnMap);
+  }
+}
+function doIPLocate(showOnMap){
+  status("使用IP定位...");
+  fetch("https://restapi.amap.com/v3/ip?key=" + AMAP_KEY)
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data && data.status === "1" && data.rectangle){
+        var rect = data.rectangle.split(";");
+        var lng1 = parseFloat(rect[0].split(",")[0]);
+        var lat1 = parseFloat(rect[0].split(",")[1]);
+        var lng2 = parseFloat(rect[1].split(",")[0]);
+        var lat2 = parseFloat(rect[1].split(",")[1]);
+        var centerLng = (lng1 + lng2) / 2;
+        var centerLat = (lat1 + lat2) / 2;
+        showOnMap(centerLat, centerLng, (data.province||"") + " " + (data.city||""));
+      } else {
+        status("IP定位失败");
+      }
+    }).catch(function(e){
+      console.log("IP geo failed:", e);
+      status("定位失败，请手动选择城市");
+    });
 }
 
 /* === Trip Planner === */
