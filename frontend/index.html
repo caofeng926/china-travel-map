@@ -51,7 +51,32 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 #list .tag{font-size:9px;padding:1px 5px;border-radius:8px;flex-shrink:0}
 #list .tag.s{background:#fde8e6;color:#c0392b}#list .tag.f{background:#fef3e0;color:#e67e22}#list .tag.l{background:#f0e8ff;color:#9b59b6}
 #list .tag.w{background:#e6f7f0;color:#27ae60}#list .tag.r{background:#e8f4fd;color:#2980b9}
-#status{padding:8px 10px;font-size:11px;color:#999;text-align:center}
+#status{padding:8px 10px;font-size:11px;color:#999;text-align:center;min-height:14px;border-top:1px solid #f0f0f0;background:#fafbfc}
+#status.is-loading{color:#c0392b}
+#status.is-error{color:#c0392b;font-weight:600}
+
+/* Toast notifications */
+.toast{position:absolute;z-index:1500;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(28,28,32,.92);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;max-width:85vw;line-height:1.4;display:flex;align-items:center;gap:8px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.is-error{background:rgba(192,57,43,.95)}
+.toast.is-success{background:rgba(39,174,96,.95)}
+.toast .icon{font-size:15px;line-height:1}
+@media(min-width:768px){.toast{top:24px}}
+@media(max-width:767px){.toast{top:14px}}
+
+/* Locate button states */
+#locateBtn{transition:transform .2s ease,background .2s ease,border-color .2s ease}
+#locateBtn:active{transform:scale(.92)}
+#locateBtn.is-loading{background:#c0392b;color:#fff;border-color:#c0392b;animation:pulse 1.2s ease-in-out infinite}
+#locateBtn.is-success{background:#27ae60;color:#fff;border-color:#27ae60}
+#locateBtn.is-error{background:#c0392b;color:#fff;border-color:#c0392b}
+@keyframes pulse{0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 10px rgba(192,57,43,0)}}
+
+/* User position marker enhancements */
+.user-marker-wrap{position:relative;width:18px;height:18px}
+.user-marker-dot{position:absolute;inset:0;margin:auto;width:14px;height:14px;border-radius:50%;background:#4285f4;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.35)}
+.user-marker-pulse{position:absolute;inset:0;margin:auto;width:18px;height:18px;border-radius:50%;background:#4285f4;opacity:.35;animation:userPulse 1.8s ease-out infinite}
+@keyframes userPulse{0%{transform:scale(.5);opacity:.5}100%{transform:scale(2.6);opacity:0}}
 
 /* Desktop layout */
 @media(min-width:768px){
@@ -128,12 +153,39 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
     <button data-type="resort">度假</button><button data-type="food">美食</button>
   </div>
   <div id="search"><input type="text" id="kw" placeholder="搜索景点名称或城市..."></div>
-  <div id="list"><div id="status">加载中...</div></div>
+  <div id="status">加载中...</div>
+  <div id="list"></div>
 </div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
 var stEl=document.getElementById("status");
 var API_BASE = location.origin + location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
-function status(m){stEl.textContent=m;console.log(m)}
+function status(m){
+  // Look up the element dynamically because renderList() replaces #list's innerHTML,
+  // which would orphan the original stEl reference after data loads.
+  var el = document.getElementById("status");
+  if(!el) el = stEl; // fallback to cached ref
+  if(el) el.textContent = m;
+  console.log(m);
+}
+
+// Toast notification system for important user-facing feedback
+var _toastTimer = null;
+function toast(msg, kind){
+  var el = document.getElementById("toast");
+  if(!el) return;
+  var icon = kind === "error" ? "⚠" : kind === "success" ? "✓" : "ⓘ";
+  el.className = "toast" + (kind ? " is-" + kind : "");
+  el.innerHTML = '<span class="icon">' + icon + '</span><span class="msg"></span>';
+  el.querySelector(".msg").textContent = msg;
+  // Force reflow then add show class for transition
+  void el.offsetWidth;
+  el.classList.add("show");
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){
+    el.classList.remove("show");
+  }, kind === "error" ? 3200 : 2200);
+}
 
 function hidePL(){
   var el=document.getElementById("pl");
@@ -274,12 +326,74 @@ function createMap(){
 var massMarksLayer = null;
 var allPoisFull = null;
 
+// Client-side dedup safety net: even if the server returns duplicates
+// (e.g., when filtering, paging, or merging data sources), collapse
+// markers that represent the same physical place.
+function clientDedupe(pois){
+  if(!pois || !pois.length) return pois;
+  var seen = new Map(); // key -> representative index
+  function normName(s){
+    if(!s) return "";
+    s = String(s).replace(/[（(][^）)]*[）)]/g, "").trim();
+    var suffixes = ["旅游景区","景区","风景区","游览区","文化旅游区","旅游区","风景名胜区"];
+    for(var i=0;i<suffixes.length;i++){
+      var suf = suffixes[i];
+      if(s.indexOf(suf) > 1 && s.endsWith(suf)){
+        s = s.slice(0, -suf.length);
+        break;
+      }
+    }
+    return s;
+  }
+  function key(p){
+    // For attractions: city + normalized name
+    // For foods: city + shop_name or normalized name
+    var base = p.type === "food"
+      ? (p.shop_name || p.name || "")
+      : (p.name || "");
+    return (p.city || "") + "|" + normName(base);
+  }
+  for(var i=0;i<pois.length;i++){
+    var k = key(pois[i]);
+    if(seen.has(k)){
+      // Prefer the one with higher rating priority / more data
+      var existingIdx = seen.get(k);
+      var cur = pois[i], existing = pois[existingIdx];
+      // Prefer records with non-empty description/address/phone
+      var scoreC = (cur.description?1:0) + (cur.address?1:0) + (cur.phone?1:0);
+      var scoreE = (existing.description?1:0) + (existing.address?1:0) + (existing.phone?1:0);
+      // For scenic, also prefer higher rating (5A > 4A > ...)
+      if(cur.type === "scenic" && existing.type === "scenic"){
+        var rank = {"5A":0,"世界遗产":0,"4A":1,"国家级旅游度假区":1,"3A":2,"国家级旅游休闲街区":2,"2A":3,"滑雪":3};
+        if((rank[cur.rating]||9) < (rank[existing.rating]||9)){
+          pois[existingIdx] = cur; // replace with better
+        }
+      } else if(scoreC > scoreE) {
+        pois[existingIdx] = cur;
+      }
+    } else {
+      seen.set(k, i);
+    }
+  }
+  // Compact array (remove duplicates in place)
+  var keepIdx = Array.from(seen.values()).sort(function(a,b){return a-b;});
+  var out = [];
+  for(var j=0;j<keepIdx.length;j++) out.push(pois[keepIdx[j]]);
+  return out;
+}
+
 function loadPOIData() {
   var pageSize = isMobile() ? 2000 : 4000;
   fetch(API_BASE + "/api/pois?compact=0&page_size=" + pageSize)
     .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(function(d){
       allPois = d.results || [];
+      // Apply client-side dedup safety net so stats, list, and map
+      // all show the same deduplicated count.
+      var before = allPois.length;
+      allPois = clientDedupe(allPois);
+      var removed = before - allPois.length;
+      if (removed > 0) console.log("Deduped " + removed + " POIs on initial load");
       allPoisFull = allPois;
       var total = d.total || allPois.length;
       status("加载了 " + allPois.length + " 个POI（共" + total + "）");
@@ -294,6 +408,12 @@ function loadPOIData() {
 
 function renderMassMarks(pois) {
   if (!map || !pois || pois.length === 0) return;
+  // Safety-net dedup: drop any near-duplicate POIs the server may have returned
+  var beforeCount = pois.length;
+  pois = clientDedupe(pois);
+  var removed = beforeCount - pois.length;
+  if (removed > 0) console.log("renderMassMarks: deduped " + removed + " duplicates");
+
   // Remove old layer
   if (massMarksLayer) { massMarksLayer.setMap(null); massMarksLayer = null; }
   if (window._mk) { map.remove(window._mk); window._mk = null; }
@@ -463,7 +583,11 @@ function setupUI(){
         status("\u52a0\u8f7d\u4e2d...");
         fetchRetry(API_BASE+"/api/pois?"+params,3,1000)
           .then(function(r){return r.json()})
-          .then(function(d){allPois=d.results||[];console.log("Loaded "+allPois.length+" for "+ft);var f=filterData();updateStats(f);renderList(f.slice(0,100));updateClusterer();})
+          .then(function(d){
+            allPois = clientDedupe(d.results || []);
+            console.log("Loaded "+allPois.length+" for "+ft);
+            var f=filterData();updateStats(f);renderList(f.slice(0,100));updateClusterer();
+          })
           .catch(function(e){status("\u52a0\u8f7d\u5931\u8d25: "+e.message)});
       }else{var f=filterData();updateStats(f);renderList(f.slice(0,100));updateClusterer();
       }
@@ -471,40 +595,104 @@ function setupUI(){
   });
   document.getElementById("kw").oninput=function(){
     var q=this.value.trim().toLowerCase();
-    if(!q){updateClusterer();return}
+    if(!q){
+      // Restore full data when search is cleared
+      updateClusterer();
+      var full = filterData();
+      updateStats(full);
+      renderList(full.slice(0, 100));
+      status("显示了 " + full.length + " 个标记");
+      return;
+    }
     var base=filterData();
     var filtered=base.filter(function(p){return(p.name&&p.name.toLowerCase().indexOf(q)>=0)||(p.city&&p.city.toLowerCase().indexOf(q)>=0)});
     updateStats(filtered);renderList(filtered.slice(0,100));
     updateClusterer(filtered);
-    status("加载: "+filtered.length+" 条结果");updateStats(filtered);renderList(filtered.slice(0,100));
     status("搜索: "+filtered.length+" 个结果");
   };
 }
+// User-location state and helpers
+var userLocationMarker = null;
+function setLocateBtnState(state, label){
+  var btn = document.getElementById("locateBtn");
+  if(!btn) return;
+  btn.classList.remove("is-loading","is-success","is-error");
+  if(state) btn.classList.add("is-" + state);
+  btn.disabled = state === "loading";
+  // Always reset the icon to the pin when no label override is needed
+  btn.textContent = label || "📍";
+}
+function placeUserMarker(lat, lng){
+  if(!map) return;
+  // Remove previous marker to avoid stacking
+  if(userLocationMarker){ map.remove(userLocationMarker); userLocationMarker = null; }
+  userLocationMarker = new AMap.Marker({
+    position: [lng, lat],
+    content: '<div class="user-marker-wrap"><div class="user-marker-pulse"></div><div class="user-marker-dot"></div></div>',
+    offset: new AMap.Pixel(-9, -9),
+    zIndex: 200,
+    title: "我的位置"
+  });
+  userLocationMarker.setMap(map);
+}
 function doLocate(){
   function showOnMap(lat,lng,label){
-    userPosition={lat:lat,lng:lng};
+    userPosition={lat:lat,lng:lng,label:label};
     if(map){
       map.setZoomAndCenter(15,[lng,lat]);
-      new AMap.Marker({position:[lng,lat],content:'<div style="background:#4285f4;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>',offset:new AMap.Pixel(-8,-8)}).setMap(map);
+      placeUserMarker(lat, lng);
     }
-    status("定位成功: " + (label||"定位点"));
+    status("✓ 定位成功: " + (label||"当前定位"));
+    setLocateBtnState("success");
+    toast("已定位到 " + (label||"当前城市"), "success");
+    setTimeout(function(){ setLocateBtnState(null); }, 1800);
   }
+  function fail(msg){
+    status("✗ " + msg);
+    setLocateBtnState("error");
+    toast(msg, "error");
+    setTimeout(function(){ setLocateBtnState(null); }, 2200);
+  }
+  // Immediate visual feedback so the user knows the click was registered
+  setLocateBtnState("loading", "⏳");
   status("正在定位...");
+  toast("正在定位…", null);
+
+  // If we already have an IP-based position cached from page load, use it
+  // as instant feedback while we try to refine with the browser geolocation API.
+  if(userPosition && userPosition.fromIP){
+    placeUserMarker(userPosition.lat, userPosition.lng);
+    map.setZoomAndCenter(11, [userPosition.lng, userPosition.lat]);
+  }
+
   if(navigator.geolocation && window.isSecureContext){
     navigator.geolocation.getCurrentPosition(function(pos){
       showOnMap(pos.coords.latitude, pos.coords.longitude, "浏览器定位");
     },function(err){
       console.log("Browser geo failed:", err);
-      doIPLocate(showOnMap);
-    },{enableHighAccuracy:true,timeout:5000});
+      // Permission denied or unavailable → fall back to IP, or use cached position
+      if(userPosition && userPosition.fromIP){
+        showOnMap(userPosition.lat, userPosition.lng, (userPosition.province||"") + " " + (userPosition.city||"") + " (IP)");
+      } else {
+        doIPLocate(showOnMap, fail);
+      }
+    },{enableHighAccuracy:true,timeout:5000,maximumAge:60000});
   } else {
-    doIPLocate(showOnMap);
+    // Not a secure context → IP fallback or cached position
+    if(userPosition && userPosition.fromIP){
+      showOnMap(userPosition.lat, userPosition.lng, (userPosition.province||"") + " " + (userPosition.city||"") + " (IP)");
+    } else {
+      doIPLocate(showOnMap, fail);
+    }
   }
 }
-function doIPLocate(showOnMap){
+function doIPLocate(showOnMap, onFail){
   status("使用IP定位...");
   fetch("https://restapi.amap.com/v3/ip?key=" + AMAP_KEY)
-    .then(function(r){return r.json()})
+    .then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
     .then(function(data){
       if(data && data.status === "1" && data.rectangle){
         var rect = data.rectangle.split(";");
@@ -516,11 +704,13 @@ function doIPLocate(showOnMap){
         var centerLat = (lat1 + lat2) / 2;
         showOnMap(centerLat, centerLng, (data.province||"") + " " + (data.city||""));
       } else {
-        status("IP定位失败");
+        var msg = (data && data.info) ? ("IP定位失败: " + data.info) : "IP定位失败";
+        if(onFail) onFail(msg); else status(msg);
       }
     }).catch(function(e){
       console.log("IP geo failed:", e);
-      status("定位失败，请手动选择城市");
+      var msg = "网络异常，无法定位。请检查网络后重试";
+      if(onFail) onFail(msg); else status(msg);
     });
 }
 

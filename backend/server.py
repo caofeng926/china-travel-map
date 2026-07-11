@@ -48,7 +48,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 radius_km=_sf(g("radius"), 500),
                 rating=g("rating"), type_filter=g("type"),
                 keyword=g("keyword"), province=g("province"), city=g("city"),
-                page=_si(g("page"), 1), page_size=min(_si(g("page_size"), 2000), 10000)
+                page=max(1, _si(g("page"), 1) or 1), page_size=min(_si(g("page_size"), 2000) or 2000, 10000)
             ))
         elif self.path.startswith("/api/plan_trip"):
             p = parse_qs(urlparse(self.path).query)
