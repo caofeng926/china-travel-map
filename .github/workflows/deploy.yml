@@ -35,8 +35,8 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 2222 }}
           script: |
             export AMAP_KEY="${{ secrets.AMAP_KEY }}"
             cd /opt/china-travel-map 2>/dev/null || { mkdir -p /opt && git clone https://github.com/caofeng926/china-travel-map.git /opt/china-travel-map && cd /opt/china-travel-map; }
