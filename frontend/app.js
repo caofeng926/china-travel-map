@@ -2,8 +2,8 @@
 var clusterer = null;
 var map, allPois = [], markers = [], filterLevel, filterType, filterKeyword;
 var API_BASE = location.origin + location.pathname.replace(/\/$/, '').replace(/\/index\.html$/, '');
-var AMAP_KEY = '6341f96e11ef424295330e635f174132';
-var AMAP_SECRET = 'b8af7f12aafdc31fe67ee671a6871dd6';
+var AMAP_KEY = '38fba823c8d8df93203578dfbfb14cd2';
+var AMAP_SECRET = 'e9222e15bcfca7750536ca497e767bda';
 window._AMapSecurityConfig = { securityJsCode: AMAP_SECRET };
 var amapRetries = 0, amapMaxRetries = 3, mapInitialized = false;
 
