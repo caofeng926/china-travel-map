@@ -44,7 +44,7 @@ class TestDB(unittest.TestCase):
         self.assertEqual(r["total"], 0)
     def test_pagination(self):
         for i in range(5):
-            database.insert_attractions([{"name":"POI","rating":"5A","city":"C","province":"P","lat":30,"lng":120}])
+            database.insert_attractions([{"name":"POI" + str(i),"rating":"5A","city":"C","province":"P","lat":30 + i * 0.01,"lng":120}])
         r = database.search_pois(page=1, page_size=2)
         self.assertEqual(len(r["results"]), 2)
         self.assertEqual(r["total"], 5)

@@ -14,7 +14,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL, rating TEXT, city TEXT, province TEXT,
             address TEXT, lat REAL, lng REAL, description TEXT,
-            recommend TEXT, source TEXT,
+            recommend TEXT, source TEXT, phone TEXT,
             created_at TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS foods (
@@ -31,6 +31,11 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_att_lat_lng ON attractions(lat, lng);
         CREATE INDEX IF NOT EXISTS idx_food_lat_lng ON foods(lat, lng);
     """)
+    # idempotent migrations for older DBs missing columns added later
+    for tbl in ("attractions", "foods"):
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(" + tbl + ")").fetchall()}
+        if "phone" not in cols:
+            conn.execute("ALTER TABLE " + tbl + " ADD COLUMN phone TEXT")
     conn.commit()
     conn.close()
 def haversine(lat1, lng1, lat2, lng2):
