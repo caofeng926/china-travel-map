@@ -102,6 +102,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             ))
         elif self.path == "/api/health":
             self._json({"status":"ok","service":"china-travel-map"})
+        elif self.path == "/api/config.js":
+            # H-NEW: serve the AMap JS key + security code from env, never from
+            # source. Frontend loads this <script> before reading AMAP_KEY.
+            import json as _json
+            cfg = _json.dumps({
+                "amap_key":    os.environ.get("AMAP_KEY", ""),
+                "amap_secret": os.environ.get("AMAP_SECRET", ""),
+            })
+            body = ("window.AMAP_CONFIG = " + cfg + ";").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         else:
             super().do_GET()
 

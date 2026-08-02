@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="中国旅游">
 <link rel="manifest" href="/manifest.json">
 
+<script src="/api/config.js"></script>
 <title>中国旅游地图</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;
@@ -378,8 +379,8 @@ function fetchRetry(url, retries, delay){
   });
 }
 
-window._AMapSecurityConfig={securityJsCode:""};  // injected at deploy time via .env / build; see .env.examplewindow.AMapSecurityConfig=window._AMapSecurityConfig;
-var AMAP_KEY="";  // injected at deploy time via .env / build; see .env.example
+window._AMapSecurityConfig={securityJsCode:((window.AMAP_CONFIG&&window.AMAP_CONFIG.amap_secret)||"")};window.AMapSecurityConfig=window._AMapSecurityConfig;
+var AMAP_KEY=(window.AMAP_CONFIG&&window.AMAP_CONFIG.amap_key)||"";
 var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false,mapInitialized=false;
 var userPosition=null;
 function getDistance(lat1,lng1,lat2,lng2){

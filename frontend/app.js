@@ -97,8 +97,8 @@ document.addEventListener('click', function(ev) {
 var clusterer = null;
 var map, allPois = [], markers = [], filterLevel, filterType, filterKeyword;
 var API_BASE = location.origin + location.pathname.replace(/\/$/, '').replace(/\/index\.html$/, '');
-var AMAP_KEY = '';  // injected at deploy time via .env / build; see .env.example
-var AMAP_SECRET = '';  // injected at deploy time via .env / build; see .env.example
+var AMAP_KEY    = (window.AMAP_CONFIG && window.AMAP_CONFIG.amap_key)    || '';  // /api/config.js
+var AMAP_SECRET = (window.AMAP_CONFIG && window.AMAP_CONFIG.amap_secret) || '';  // /api/config.js
 window._AMapSecurityConfig = { securityJsCode: AMAP_SECRET };
 var amapRetries = 0, amapMaxRetries = 3, mapInitialized = false;
 
