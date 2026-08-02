@@ -1,0 +1,1068 @@
+﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes,viewport-fit=cover">
+<meta name="theme-color" content="#c0392b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="中国旅游">
+<link rel="manifest" href="/manifest.json">
+
+<title>中国旅游地图</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;
+  -webkit-tap-highlight-color:rgba(0,0,0,.1);tap-highlight-color:rgba(0,0,0,.1)}
+/* Loading overlay */
+#pl{position:absolute;z-index:2000;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center}
+#pl .loading{text-align:center;font-size:14px;color:#666}
+#pl .spinner{width:32px;height:32px;border:3px solid #eee;border-top-color:#c0392b;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#pl .retry-btn{margin-top:12px;padding:8px 20px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+#pl .progress-bar-wrap{margin-top:10px;width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden}
+#pl .progress-bar{height:100%;background:#c0392b;width:0;transition:width .3s}
+#pl .progress-text{margin-top:6px;font-size:12px;color:#999}
+html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+#map{width:100%;height:100%;position:absolute;top:0;left:0;z-index:1;touch-action:none}
+#locateBtn:hover{background:#f0f0f0}
+
+/* ===== Desktop Panel ===== */
+#panel{position:absolute;z-index:1000;background:rgba(255,255,255,.97);box-shadow:0 4px 20px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden}
+#panel h2{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;margin:0;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+#panel h2 .ti{font-size:15px;white-space:nowrap}
+#panel h2 .sm{font-size:10px;opacity:.8;font-weight:normal}
+#panel h2 .tg{font-size:12px;opacity:.7;display:none}
+
+#modeSwitch{display:flex;border-bottom:1px solid #e0e0e0}
+#modeSwitch button{flex:1;padding:6px;border:none;background:#f0f0f0;cursor:pointer;font-size:12px;color:#666;transition:all .2s}
+#modeSwitch button.active{background:#c0392b;color:#fff;font-weight:700}
+#modeSwitch button:first-child{border-right:1px solid #ddd}
+
+#stats{display:flex;gap:4px;padding:8px 10px}
+#stats>div{flex:1;text-align:center;background:#f5f5f5;border-radius:6px;padding:4px 0}
+#stats .n{font-size:18px;font-weight:700;color:#c0392b}
+#stats .l{font-size:10px;color:#888}
+#filters{padding:0 10px 6px;display:flex;gap:3px;flex-wrap:wrap}
+#filters button{padding:3px 8px;border:none;border-radius:4px;font-size:10px;cursor:pointer;background:#eee;color:#666;font-weight:600;touch-action:manipulation}
+#filters button.active{background:#c0392b;color:#fff}
+#search{margin:0 10px 8px}
+#search input{width:100%;padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:11px;outline:none}
+#list{flex:1;overflow-y:auto;padding:0 10px 10px}
+#list .item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;cursor:pointer;border:1px solid #eee;margin-bottom:2px;font-size:11px;touch-action:manipulation}
+#list .item:hover{background:#fdf2f0}
+#list .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#list .dot.s{background:#e74c3c}#list .dot.f{background:#f39c12}#list .dot.l{background:#9b59b6}
+#list .info{flex:1;min-width:0}
+#list .name{font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#list .sub{font-size:10px;color:#999}
+#list .tag{font-size:9px;padding:1px 5px;border-radius:8px;flex-shrink:0}
+#list .tag.s{background:#fde8e6;color:#c0392b}#list .tag.f{background:#fef3e0;color:#e67e22}#list .tag.l{background:#f0e8ff;color:#9b59b6}
+#list .tag.w{background:#e6f7f0;color:#27ae60}#list .tag.r{background:#e8f4fd;color:#2980b9}
+#status{padding:8px 10px;font-size:11px;color:#999;text-align:center;min-height:14px;border-top:1px solid #f0f0f0;background:#fafbfc}
+#status.is-loading{color:#c0392b}
+#status.is-error{color:#c0392b;font-weight:600}
+
+/* Toast notifications */
+.toast{position:absolute;z-index:1500;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(28,28,32,.92);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;max-width:85vw;line-height:1.4;display:flex;align-items:center;gap:8px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.is-error{background:rgba(192,57,43,.95)}
+.toast.is-success{background:rgba(39,174,96,.95)}
+.toast .icon{font-size:15px;line-height:1}
+@media(min-width:768px){.toast{top:24px}}
+@media(max-width:767px){.toast{top:14px}}
+
+/* Locate button states */
+#locateBtn{transition:transform .2s ease,background .2s ease,border-color .2s ease}
+#locateBtn:active{transform:scale(.92)}
+#locateBtn.is-loading{background:#c0392b;color:#fff;border-color:#c0392b;animation:pulse 1.2s ease-in-out infinite}
+#locateBtn.is-success{background:#27ae60;color:#fff;border-color:#27ae60}
+#locateBtn.is-error{background:#c0392b;color:#fff;border-color:#c0392b}
+@keyframes pulse{0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 10px rgba(192,57,43,0)}}
+
+/* User position marker enhancements */
+.user-marker-wrap{position:relative;width:18px;height:18px}
+.user-marker-dot{position:absolute;inset:0;margin:auto;width:14px;height:14px;border-radius:50%;background:#4285f4;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.35)}
+.user-marker-pulse{position:absolute;inset:0;margin:auto;width:18px;height:18px;border-radius:50%;background:#4285f4;opacity:.35;animation:userPulse 1.8s ease-out infinite}
+@keyframes userPulse{0%{transform:scale(.5);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+
+/* Desktop layout */
+@media(min-width:768px){
+  #panel{top:12px;left:12px;width:320px;max-height:calc(100vh - 24px);border-radius:12px}
+  #panel h2{padding:10px 14px;border-radius:12px 12px 0 0}
+  #list{max-height:350px}
+}
+
+/* Mobile layout */
+@media(max-width:767px){
+
+  #panel{bottom:0;left:0;right:0;border-radius:12px 12px 0 0;max-height:calc(85vh + env(safe-area-inset-bottom));transition:transform .3s ease;padding-bottom:env(safe-area-inset-bottom)}
+
+  #panel.collapsed{transform:translateY(calc(100% - 52px - env(safe-area-inset-bottom)))}
+
+  #panel h2{padding:8px 14px;border-radius:12px 12px 0 0;padding-top:max(8px,env(safe-area-inset-top))}
+
+  #panel h2 .tg{display:block;font-size:16px}
+
+  .handle-bar{width:36px;height:4px;background:#ddd;border-radius:2px;margin:6px auto 0;display:block}
+
+  #stats{padding:6px 8px;gap:3px}
+
+  #stats>div{padding:3px 0}
+
+  #stats .n{font-size:15px}
+
+  #stats .l{font-size:9px}
+
+  #filters{padding:0 6px 4px;gap:3px}
+
+  #filters button{padding:8px 8px;font-size:11px;min-height:44px;min-width:44px}
+
+  #search{margin:0 6px 6px}
+
+  #search input{min-height:36px;font-size:14px;padding:8px 10px}
+
+  #list{max-height:40vh}
+
+  #list .item{padding:10px 8px;font-size:13px;min-height:44px}
+
+  #panel.collapsed #filters,#panel.collapsed #search,#panel.collapsed #list{display:none}
+
+  #panel.collapsed #stats{padding:4px 8px}
+
+  #panel.collapsed #stats .n{font-size:14px}
+
+  #toggleBtn{bottom:max(60px,calc(60px + env(safe-area-inset-bottom)));right:12px;width:48px;height:48px}
+
+  #locateBtn{bottom:max(170px,calc(170px + env(safe-area-inset-bottom)));right:12px;width:48px;height:48px}
+
+}
+
+
+/* Manual locate button (fallback) */
+#locateBtn{position:absolute;z-index:999;width:44px;height:44px;border-radius:50%;background:#fff;color:#333;border:2px solid #ddd;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2);touch-action:manipulation;display:flex;align-items:center;justify-content:center}
+@media(min-width:768px){#locateBtn{bottom:140px;right:12px}}
+@media(max-width:767px){#locateBtn{bottom:170px;right:12px}}
+
+/* Floating toggle for mobile */
+#toggleBtn{position:absolute;z-index:999;display:none;width:44px;height:44px;border-radius:50%;background:#c0392b;color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3);touch-action:manipulation}
+@media(max-width:767px){
+  #toggleBtn{display:block;bottom:60px;right:12px}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="pl"><div class="loading"><div class="spinner"></div>正在加载中国旅游地图...</div></div>
+<button id="toggleBtn" onclick="togglePanel()">☰</button>
+<button id="locateBtn" onclick="doLocate()">📍</button>
+<div id="panel">
+  <div class="handle-bar"></div>
+  <h2><span class="ti">中国旅游地图 <span class="sm">7,000+ POI</span></span><span class="tg" id="toggleArrow">▲</span></h2>
+  <div id="modeSwitch"><button class="mode-btn active" data-mode="browse">浏览</button><button class="mode-btn" data-mode="plan">行程规划</button></div>
+<div id="tripForm" style="display:none;padding:6px 10px;border-bottom:1px solid #e0e0e0;background:#f8f9fa;font-size:12px">
+  <div style="display:flex;gap:4px;margin-bottom:4px">
+    <input id="tripOrigin" placeholder="出发地（城市名）" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+    <input id="tripDest" placeholder="目的地" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+  </div>
+  <div style="display:flex;gap:4px;align-items:center">
+    <select id="tripMode" style="padding:4px;border:1px solid #ccc;border-radius:3px;font-size:12px">
+      <option value="driving">自驾</option>
+      <option value="transit">公共交通</option>
+    </select>
+    <button id="tripBtn" style="padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px">规划行程</button>
+    <span id="tripStatus" style="color:#888;font-size:11px;margin-left:4px"></span>
+  </div>
+</div><div id="stats">
+    <div><div class="n" id="stotal">0</div><div class="l">总</div></div>
+    <div><div class="n" id="sscenic">0</div><div class="l">景区</div></div>
+    <div><div class="n" id="sfood">0</div><div class="l">美食</div></div>
+    <div><div class="n" id="sleisure">0</div><div class="l">街区</div></div>
+  </div>
+  <div id="filters">
+    <button class="active" data-type="all">全部</button>
+    <button data-type="5A">5A</button><button data-type="4A">4A</button><button data-type="3A">3A</button>
+    <button data-type="leisure">街区</button><button data-type="world">世界</button>
+    <button data-type="resort">度假</button><button data-type="food">美食</button>
+  </div>
+  <div id="search"><input type="text" id="kw" placeholder="搜索景点名称或城市..."></div>
+  <div id="status">加载中...</div>
+  <div id="list"></div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+// Truncate POI names so the resulting AMap URL stays well under the
+// browser URL length limits even for places with very long official names.
+function _navTruncate(s, max) {
+  s = String(s == null ? '' : s);
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+// Briefly disable a button so a frantic double-tap doesn't open the
+// AMap handoff URL twice while the native app is still launching.
+function _markNavButtonBusy(btn) {
+  if (!btn) return;
+  btn.setAttribute('data-nav-busy', '1');
+  btn.disabled = true;
+  setTimeout(function() {
+    btn.removeAttribute('data-nav-busy');
+    btn.disabled = false;
+  }, 1500);
+}
+
+// Open AMap navigation in a new tab.
+//
+// opts.from  = { lat, lng, name? }  optional starting point; when provided we
+//             switch to the "navigation" URL (route planning) instead of the
+//             "marker" URL (single point). The `src` query param must match
+//             the bundle id registered at https://lbs.amap.com/ — replace
+//             "china-travel-map" if you rebrand.
+function navigateTo(lat, lng, name, opts) {
+  opts = opts || {};
+  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+    toast('坐标无效，无法导航', 'error');
+    return;
+  }
+  var safeName = _navTruncate(name, 50);
+  var url;
+  if (opts.from && typeof opts.from.lng === 'number' && typeof opts.from.lat === 'number') {
+    var fromName = opts.from.name ? ',' + encodeURIComponent(_navTruncate(opts.from.name, 50)) : '';
+    url = 'https://uri.amap.com/navigation?from=' + opts.from.lng + ',' + opts.from.lat + fromName +
+          '&to=' + lng + ',' + lat + (safeName ? ',' + encodeURIComponent(safeName) : '') +
+          '&mode=' + (opts.mode || 'car') +
+          '&policy=1&src=china-travel-map&coordinate=gaode&callnative=1';
+  } else {
+    url = 'https://uri.amap.com/marker?position=' + lng + ',' + lat +
+          '&name=' + encodeURIComponent(safeName) +
+          '&src=china-travel-map&coordinate=gaode&callnative=1';
+  }
+  toast('正在打开高德地图导航…');
+  var w = null;
+  try { w = window.open(url, '_blank', 'noopener'); } catch (e) { w = null; }
+  if (!w) {
+    // Popup blocked — fall back to a synthesized <a target="_blank"> click.
+    var a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    try { a.click(); } catch (e) {}
+    a.remove();
+    toast('浏览器拦截了新窗口，请在地址栏右侧允许弹窗后重试', 'error');
+  }
+}
+
+// Global default for AMap navigation transport mode. Mutated by the
+// data-nav-mode pill buttons rendered inside each InfoWindow.
+window._navMode = window._navMode || 'car';
+
+function _setNavMode(mode, originBtn) {
+  if (['car', 'walk', 'bus'].indexOf(mode) < 0) return;
+  window._navMode = mode;
+  // Update visual highlight on every pill inside the same row as originBtn.
+  var container = originBtn && originBtn.parentElement;
+  if (!container) return;
+  var pills = container.querySelectorAll('[data-nav-mode]');
+  for (var i = 0; i < pills.length; i++) {
+    var p = pills[i];
+    var active = p === originBtn;
+    p.style.background = active ? '#1f6feb' : '#f0f0f0';
+    p.style.color      = active ? '#fff'      : '#333';
+    p.style.fontWeight = active ? '600'       : '400';
+  }
+}
+
+// Delegated handler: "data-nav-here" opens the marker URL, "data-nav-route"
+// opens a navigation URL using window.userPosition (if any) as the origin.
+// "data-nav-btn" is kept as an alias for "data-nav-here" so external callers
+// don't break. Disabled buttons (and those flagged data-nav-busy) are ignored.
+document.addEventListener('click', function(ev) {
+  var t = ev.target;
+  if (!t || !t.getAttribute) return;
+
+  // Mode pill — switch transport, no navigation.
+  var modeAttr = t.getAttribute('data-nav-mode');
+  if (modeAttr) {
+    _setNavMode(modeAttr, t);
+    return;
+  }
+
+  var isHere  = t.getAttribute('data-nav-here')  !== null;
+  var isRoute = t.getAttribute('data-nav-route') !== null;
+  var isLegacy = !isHere && !isRoute && t.getAttribute('data-nav-btn') !== null;
+  if (!isHere && !isRoute && !isLegacy) return;
+  if (t.disabled || t.getAttribute('data-nav-busy') === '1') return;
+  var lat = parseFloat(t.getAttribute('data-lat'));
+  var lng = parseFloat(t.getAttribute('data-lng'));
+  var name = t.getAttribute('data-name') || '';
+  if (isRoute) {
+    if (!window.userPosition || typeof window.userPosition.lat !== 'number') {
+      toast('请先点击右下角定位按钮，再使用"规划路线"', 'error');
+      return;
+    }
+    navigateTo(lat, lng, name, { from: window.userPosition, mode: window._navMode });
+  } else {
+    navigateTo(lat, lng, name);
+  }
+  _markNavButtonBusy(t);
+});
+
+// Simple debounce helper for high-frequency input handlers.
+function debounce(fn, ms){
+  var t = null;
+  return function(){
+    var args = arguments, ctx = this;
+    clearTimeout(t);
+    t = setTimeout(function(){ fn.apply(ctx, args); }, ms);
+  };
+}
+
+// 5 marker icon SVGs (5A red / 4A green / 3A orange / F food / L leisure).
+// Kept here instead of inline in the styles block so the renderMassMarks
+// body stays scannable; AMap accepts data: URLs the same as http(s) URLs.
+var MARKER_ICONS = [
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCI+PGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTMiIGZpbGw9IiNjMDM5MmIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTUiIHk9IjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgZm9udC1mYW1pbHk9IkFyaWFsIj41QTwvdGV4dD48L3N2Zz4=",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTIiIGZpbGw9IiMyN2FlNjAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTQiIHk9IjE3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPjRBPC90ZXh0Pjwvc3ZnPg==",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiNlNjdlMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTIiIHk9IjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPjNBPC90ZXh0Pjwvc3ZnPg==",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiNmMzljMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTIiIHk9IjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPkY8L3RleHQ+PC9zdmc+",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTIiIGZpbGw9IiM5YjU5YjYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTQiIHk9IjE3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPkw8L3RleHQ+PC9zdmc+",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTIiIGZpbGw9IiMyN2FlNjAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTQiIHk9IjE3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPuS4ljwvdGV4dD48L3N2Zz4=",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiMyOTgwYjkiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTIiIHk9IjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPuW6pjwvdGV4dD48L3N2Zz4=",
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiMzNDk4ZGIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iMTIiIHk9IjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiPumbqjwvdGV4dD48L3N2Zz4="
+];
+
+var stEl=document.getElementById("status");
+var API_BASE = location.origin + location.pathname.replace(/\/index\.html$/, "").replace(/\/$/, "");
+function status(m){
+  // Look up the element dynamically because renderList() replaces #list's innerHTML,
+  // which would orphan the original stEl reference after data loads.
+  var el = document.getElementById("status");
+  if(!el) el = stEl; // fallback to cached ref
+  if(el) el.textContent = m;
+  console.log(m);
+}
+
+// Toast notification system for important user-facing feedback
+var _toastTimer = null;
+function toast(msg, kind){
+  var el = document.getElementById("toast");
+  if(!el) return;
+  var icon = kind === "error" ? "⚠" : kind === "success" ? "✓" : "ⓘ";
+  el.className = "toast" + (kind ? " is-" + kind : "");
+  el.innerHTML = '<span class="icon">' + icon + '</span><span class="msg"></span>';
+  el.querySelector(".msg").textContent = msg;
+  // Force reflow then add show class for transition
+  void el.offsetWidth;
+  el.classList.add("show");
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){
+    el.classList.remove("show");
+  }, kind === "error" ? 3200 : 2200);
+}
+
+function hidePL(){
+  var el=document.getElementById("pl");
+  if(el){el.style.display="none"}
+}
+
+
+function fetchRetry(url, retries, delay){
+  return fetch(url).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r;
+  }).catch(function(e){
+    if(retries <= 1) throw e;
+    return new Promise(function(resolve){
+      setTimeout(resolve, delay);
+    }).then(function(){
+      return fetchRetry(url, retries-1, delay*2);
+    });
+  });
+}
+
+window._AMapSecurityConfig={securityJsCode:""};  // injected at deploy time via .env / build; see .env.examplewindow.AMapSecurityConfig=window._AMapSecurityConfig;
+var AMAP_KEY="";  // injected at deploy time via .env / build; see .env.example
+var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false,mapInitialized=false;
+var userPosition=null;
+function getDistance(lat1,lng1,lat2,lng2){
+  var R=6371000;
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+        Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+        Math.sin(dLng/2)*Math.sin(dLng/2);
+  var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  var d=R*c;
+  if(d<1000)return Math.round(d)+"m";
+  return (d/1000).toFixed(1)+"km";
+}
+
+// Mobile panel
+var panel=document.getElementById("panel");
+function isMobile() { return window.innerWidth < 768; }
+function isPortrait() { return window.innerHeight > window.innerWidth; }
+
+function togglePanel(){
+  panel.classList.toggle("collapsed");
+  document.getElementById("toggleArrow").textContent=panel.classList.contains("collapsed")?"▼":"▲";
+}
+// Desktop: panel always expanded; mobile: collapsed by default
+if(isMobile()){
+  panel.classList.add("collapsed");
+}
+document.querySelector("#panel h2").onclick=togglePanel;
+
+var amapLoadTimeout = null;
+var amapLoadFailed = false;
+
+function showRetryBtn(msg) {
+  var el = document.getElementById("pl");
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div style="font-size:14px;color:#c0392b;margin-bottom:8px">' + (msg || "地图加载超时") + '</div><div style="font-size:12px;color:#888;margin-bottom:12px">请检查网络后重试</div><button class="retry-btn" onclick="retryLoad()">重新加载</button></div>';
+}
+
+function retryLoad() {
+  // Remove old script if exists
+  var old = document.getElementById("_amap_script");
+  if (old) old.parentNode.removeChild(old);
+  // Clear global state
+  window._onAmapLoad = function(){status("加载地图...");createMap()};
+  mapInitialized = false;
+  amapLoadFailed = false;
+  if (amapLoadTimeout) clearTimeout(amapLoadTimeout);
+  loadAmapJS();
+}
+
+function loadAmapJS() {
+  var el = document.getElementById("pl");
+  if (el) el.innerHTML = '<div class="loading"><div class="spinner"></div>正在加载地图...</div>';
+  var s = document.createElement("script");
+  s.id = "_amap_script";
+  s.src = "https://webapi.amap.com/maps?v=2.0&key=" + AMAP_KEY + "&callback=_onAmapLoad&t=" + Date.now();
+  s.onerror = function() {
+    amapLoadFailed = true;
+    showRetryBtn("高德地图加载失败");
+  };
+  document.head.appendChild(s);
+  status("加载高德地图SDK...");
+  // 15s timeout fallback
+  if (amapLoadTimeout) clearTimeout(amapLoadTimeout);
+  amapLoadTimeout = setTimeout(function() {
+    if (!mapInitialized && !amapLoadFailed) {
+      showRetryBtn("地图加载超时（网络较慢）");
+    }
+  }, 15000);
+}
+
+window._onAmapLoad = function() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+  if (amapLoadTimeout) clearTimeout(amapLoadTimeout);
+  status("加载地图...");createMap();
+};
+loadAmapJS();
+
+function createMap(){
+  try{
+    map=new AMap.Map("map",{center:[109.5,36.5],zoom:5,mapStyle:"amap://styles/light"});
+    hidePL();
+    status("地图OK，加载数据...");
+  // 添加定位控件
+  // Skip auto-locate on HTTP (geolocation requires HTTPS)
+  // Use IP-based geolocation as fallback - works on HTTP
+  fetch('https://restapi.amap.com/v3/ip?key=' + AMAP_KEY)
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data && data.status === "1" && data.rectangle) {
+        var rect = data.rectangle.split(";");
+        if(rect.length === 2) {
+          var lng1 = parseFloat(rect[0].split(",")[0]);
+          var lat1 = parseFloat(rect[0].split(",")[1]);
+          var lng2 = parseFloat(rect[1].split(",")[0]);
+          var lat2 = parseFloat(rect[1].split(",")[1]);
+          if (!isFinite(lng1) || !isFinite(lat1) || !isFinite(lng2) || !isFinite(lat2)) return;
+          var centerLng = (lng1 + lng2) / 2;
+          var centerLat = (lat1 + lat2) / 2;
+          if (!isFinite(centerLat) || !isFinite(centerLng)) return;
+          userPosition = {lat: centerLat, lng: centerLng, fromIP: true, province: data.province, city: data.city};
+          console.log("IP定位成功:", data.province, data.city);
+        }
+      }
+    }).catch(function(e){console.log("IP定位失败:", e);});
+
+    // Show loading progress
+    var el = document.getElementById("pl");
+    if (el) el.innerHTML = '<div class="loading"><div class="spinner"></div><div id="loadProgress">正在加载数据...</div><div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div><div class="progress-text">0%</div></div>';
+
+    loadPOIData();
+  }catch(e){status("地图错误: "+e.message)}
+}
+
+var massMarksLayer = null;
+var allPoisFull = null;
+
+// Client-side dedup safety net: even if the server returns duplicates
+// (e.g., when filtering, paging, or merging data sources), collapse
+// markers that represent the same physical place.
+function clientDedupe(pois){
+  if(!pois || !pois.length) return pois;
+  var seen = new Map(); // key -> representative index
+  function normName(s){
+    if(!s) return "";
+    s = String(s).replace(/[（(][^）)]*[）)]/g, "").trim();
+    var suffixes = ["旅游景区","景区","风景区","游览区","文化旅游区","旅游区","风景名胜区"];
+    for(var i=0;i<suffixes.length;i++){
+      var suf = suffixes[i];
+      if(s.indexOf(suf) > 1 && s.endsWith(suf)){
+        s = s.slice(0, -suf.length);
+        break;
+      }
+    }
+    return s;
+  }
+  function key(p){
+    // For attractions: city + normalized name
+    // For foods: city + shop_name or normalized name
+    var base = p.type === "food"
+      ? (p.shop_name || p.name || "")
+      : (p.name || "");
+    return (p.city || "") + "|" + normName(base);
+  }
+  for(var i=0;i<pois.length;i++){
+    var k = key(pois[i]);
+    if(seen.has(k)){
+      // Prefer the one with higher rating priority / more data
+      var existingIdx = seen.get(k);
+      var cur = pois[i], existing = pois[existingIdx];
+      // Prefer records with non-empty description/address/phone
+      var scoreC = (cur.description?1:0) + (cur.address?1:0) + (cur.phone?1:0);
+      var scoreE = (existing.description?1:0) + (existing.address?1:0) + (existing.phone?1:0);
+      // For scenic, also prefer higher rating (5A > 4A > ...)
+      if(cur.type === "scenic" && existing.type === "scenic"){
+        var rank = {"5A":0,"世界遗产":0,"4A":1,"国家级旅游度假区":1,"3A":2,"国家级旅游休闲街区":2,"2A":3,"滑雪":3};
+        if((rank[cur.rating]||9) < (rank[existing.rating]||9)){
+          pois[existingIdx] = cur; // replace with better
+        }
+      } else if(scoreC > scoreE) {
+        pois[existingIdx] = cur;
+      }
+    } else {
+      seen.set(k, i);
+    }
+  }
+  // Compact array (remove duplicates in place)
+  var keepIdx = Array.from(seen.values()).sort(function(a,b){return a-b;});
+  var out = [];
+  for(var j=0;j<keepIdx.length;j++) out.push(pois[keepIdx[j]]);
+  return out;
+}
+
+function loadPOIData() {
+  var pageSize = isMobile() ? 5000 : 10000; // server caps page_size at 10000
+  fetch(API_BASE + "/api/pois?compact=0&page_size=" + pageSize)
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(d){
+      allPois = d.results || [];
+      // Apply client-side dedup safety net so stats, list, and map
+      // all show the same deduplicated count.
+      var before = allPois.length;
+      allPois = clientDedupe(allPois);
+      var removed = before - allPois.length;
+      if (removed > 0) console.log("Deduped " + removed + " POIs on initial load");
+      allPoisFull = allPois;
+      var total = d.total || allPois.length;
+      status("加载了 " + allPois.length + " 个POI（共" + total + "）");
+      setupUI(); updateStats(allPois); renderList(allPois.slice(0, 100));
+      renderMassMarks(allPois);
+      hidePL();
+    })
+    .catch(function(e){
+      showRetryBtn("数据加载失败: " + e.message);
+    });
+}
+
+function renderMassMarks(pois) {
+  if (!map || !pois || pois.length === 0) return;
+  // Safety-net dedup: drop any near-duplicate POIs the server may have returned
+  var beforeCount = pois.length;
+  pois = clientDedupe(pois);
+  var removed = beforeCount - pois.length;
+  if (removed > 0) console.log("renderMassMarks: deduped " + removed + " duplicates");
+
+  // Remove old layer
+  if (massMarksLayer) { massMarksLayer.setMap(null); massMarksLayer = null; }
+
+  // Build the MassMarks data once with all per-point fields (lnglat, style index,
+  // and popup metadata). The previous code built a throwaway `data` array here
+  // and then rebuilt a second `massData` array with the popup fields, doing the
+  // .map() twice and dropping the first array.
+  var massData = pois.map(function(p){
+    var idx = 0;
+    if (p.type === "food") idx = 3;
+    else if (p.rating && p.rating.indexOf("街区") >= 0) idx = 4;
+    else if (p.rating === "世界遗产") idx = 5;
+    else if (p.rating === "国家级旅游度假区") idx = 6;
+    else if (p.rating && p.rating.indexOf("滑雪") >= 0) idx = 7;
+    else if (p.rating === "5A") idx = 0;
+    else if (p.rating === "4A") idx = 1;
+    else if (p.rating === "3A") idx = 2;
+    return {
+      lnglat: [p.lng, p.lat],
+      name: p.name,
+      style: idx,
+      rating: p.rating,
+      type: p.type,
+      address: p.address,
+      province: p.province,
+      city: p.city,
+      phone: p.phone,
+      description: p.description
+    };
+  });
+
+  AMap.plugin("AMap.MassMarks", function() {
+        // 5 marker styles (5A/4A/3A/F/L). URLs come from the top-level
+        // MARKER_ICONS array so the long base64 blobs stay readable.
+        var styles = [
+      { url: MARKER_ICONS[0], anchor: new AMap.Pixel(15, 15), size: new AMap.Size(30, 30) },
+      { url: MARKER_ICONS[1], anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
+      { url: MARKER_ICONS[2], anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      { url: MARKER_ICONS[3], anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      { url: MARKER_ICONS[4], anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
+      { url: MARKER_ICONS[5], anchor: new AMap.Pixel(14, 14), size: new AMap.Size(28, 28) },
+      { url: MARKER_ICONS[6], anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) },
+      { url: MARKER_ICONS[7], anchor: new AMap.Pixel(12, 12), size: new AMap.Size(24, 24) }
+    ];
+
+        massMarksLayer = new AMap.MassMarks(massData, {
+      style: styles,
+      anchor: new AMap.Pixel(10, 10),
+      size: new AMap.Size(20, 20),
+      opacity: 0.8,
+      cursor: "pointer"
+    });
+
+    // Set per-point style (single default style)
+
+    massMarksLayer.setData(massData);
+    massMarksLayer.setMap(map);
+
+    // Click on mass mark to show info
+    massMarksLayer.on("click", function(e) {
+      var info = e.data;
+      if (!info || !info.name) return;
+      var lnglat = info.lnglat;
+      var ratingColor = info.rating === "5A" ? "#c0392b" : info.rating === "4A" ? "#27ae60" : info.rating === "3A" ? "#e67e22" : "#7f8c8d";
+      var c = '<div style="min-width:240px;max-width:320px;padding:4px">';
+      c += '<h3 style="font-size:15px;color:#2c3e50;margin:0 0 8px;font-weight:600">' + esc(info.name) + '</h3>';
+      if(info.rating) c += '<div style="margin-bottom:6px"><span style="font-size:11px;background:' + ratingColor + ';color:#fff;padding:2px 8px;border-radius:3px;font-weight:bold">'+esc(info.rating)+'</span></div>';
+      if(info.address) c += '<div style="font-size:12px;color:#555;margin-bottom:4px;line-height:1.5">&#128205; ' + esc(info.address) + '</div>';
+      if(info.province || info.city) c += '<div style="font-size:11px;color:#999;margin-bottom:4px">' + esc((info.province||"") + " " + (info.city||"")) + '</div>';
+      if(info.phone) c += '<div style="font-size:12px;color:#2980b9;margin-top:6px">&#128222; <a href="tel:' + info.phone.replace(/[^0-9+\-]/g, "") + '" style="color:#2980b9;text-decoration:none">' + esc(info.phone) + '</a></div>';
+      if(info.description) c += '<div style="font-size:11px;color:#7f8c8d;margin-top:6px;padding-top:6px;border-top:1px solid #eee">' + esc(info.description) + '</div>';
+      c += '</div>';
+      var _hasPos = (typeof userPosition === 'object' && userPosition && typeof userPosition.lat === 'number');
+      var _routeStyle = _hasPos
+        ? 'flex:1;padding:6px 8px;background:#34a853;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation'
+        : 'flex:1;padding:6px 8px;background:#cccccc;color:#666;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:not-allowed;touch-action:manipulation';
+      var _routeTitle = _hasPos ? '' : ' title="请先点击右下角定位按钮"';
+      if (_hasPos) {
+        var _dist = getDistance(userPosition.lat, userPosition.lng, info.lnglat[1], info.lnglat[0]);
+        c += '<div style="font-size:11px;color:#27ae60;margin-top:6px">📍 距您 ' + _dist + '</div>';
+      }
+      c += '<div style="display:flex;gap:6px;margin-top:6px">';
+      c += '<button type="button" data-nav-here data-lat="' + info.lnglat[1] + '" data-lng="' + info.lnglat[0] + '" data-name="' + esc(info.name) + '" style="flex:1;padding:6px 8px;background:#4285f4;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation">🧭 导航到这里</button>';
+      c += '<button type="button" data-nav-route' + _routeTitle + (_hasPos ? '' : ' disabled') + ' data-lat="' + info.lnglat[1] + '" data-lng="' + info.lnglat[0] + '" data-name="' + esc(info.name) + '" style="' + _routeStyle + '">🚗 规划路线</button>';
+      c += '</div>';
+      var _modes = [{k:'car',l:'🚗 驾车'},{k:'walk',l:'🚶 步行'},{k:'bus',l:'🚌 公交'}];
+      var _curMode = window._navMode || 'car';
+      c += '<div style="display:flex;gap:4px;margin-top:4px">';
+      for (var _mi = 0; _mi < _modes.length; _mi++) {
+        var _m = _modes[_mi];
+        var _active = (_m.k === _curMode);
+        var _mStyle = _active
+          ? 'flex:1;padding:4px 6px;background:#1f6feb;color:#fff;border:none;border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;touch-action:manipulation'
+          : 'flex:1;padding:4px 6px;background:#f0f0f0;color:#333;border:none;border-radius:3px;font-size:10px;cursor:pointer;touch-action:manipulation';
+        c += '<button type="button" data-nav-mode="' + _m.k + '" style="' + _mStyle + '">' + _m.l + '</button>';
+      }
+      c += '</div>';
+      if (lnglat) {
+        map.setCenter(lnglat);
+        new AMap.InfoWindow({ content: c, offset: new AMap.Pixel(0, -20) }).open(map, lnglat);
+      }
+    });
+
+    status("显示了 " + pois.length + " 个标记（海量点模式）");
+  });
+}
+
+function iconStyle(p){
+  if(p.type==="food")return{color:"#f39c12",label:"食",cls:"f",size:24};
+  if(p.rating==="世界遗产")return{color:"#27ae60",label:"世",cls:"w",size:28};
+  if(p.rating==="国家级旅游度假区")return{color:"#2980b9",label:"度",cls:"r",size:24};
+  if(p.rating&&p.rating.indexOf("滑雪")>=0)return{color:"#3498db",label:"雪",cls:"s",size:24};
+  if(p.rating&&p.rating.indexOf("街区")>=0)return{color:"#9b59b6",label:"街",cls:"l",size:24};
+  var rt=p.rating||"";
+  if(rt.indexOf("5A")>=0)return{color:"#c0392b",label:"5A",cls:"s",size:30};
+  if(rt.indexOf("4A")>=0)return{color:"#e74c3c",label:"4A",cls:"s",size:26};
+  if(rt.indexOf("3A")>=0)return{color:"#e67e22",label:"3A",cls:"s",size:24};
+  return{color:"#95a5a6",label:"●",cls:"s",size:20};
+}
+
+
+function updateClusterer(pois){
+  if(isTripMode||!map){return}
+  var list=pois||filterData();
+  status("正在渲染 "+list.length+" 个标记...");
+  renderMassMarks(list);
+}
+function filterData(){
+  var arr=allPois;
+  if(currentFilter==="all")return arr;
+  if(currentFilter==="food")return arr.filter(function(p){return p.type==="food"});
+  if(currentFilter==="leisure")return arr.filter(function(p){return p.type==="scenic"&&(!p.rating||(p.rating.indexOf("街区")>=0))});
+  // Resort: rating === "国家级旅游度假区" OR description contains the
+  // 3-char token 度假区 (catches "5A沙漠度假区" / "4A文化旅游度假区"
+  // which are real resorts tagged with the legacy rating).
+  if(currentFilter==="world")return arr.filter(function(p){
+    return p.rating==="世界遗产";
+  });
+  if(currentFilter==="resort")return arr.filter(function(p){
+    return p.rating==="国家级旅游度假区" || (p.description && p.description.indexOf("度假区")>=0);
+  });
+  return arr.filter(function(p){return p.rating===currentFilter});
+}
+
+function updateStats(arr){
+  document.getElementById("stotal").textContent=arr.length;
+  document.getElementById("sscenic").textContent=arr.filter(function(p){
+    return p.type==="scenic"&&(!p.rating||(p.rating.indexOf("街区")<0&&p.rating.indexOf("滑雪")<0&&p.rating.indexOf("度假")<0&&p.rating!=="世界遗产"));
+  }).length;
+  document.getElementById("sfood").textContent=arr.filter(function(p){return p.type==="food"}).length;
+  document.getElementById("sleisure").textContent=arr.filter(function(p){
+    return p.rating&&(p.rating.indexOf("街区")>=0||p.rating.indexOf("滑雪")>=0||p.rating.indexOf("度假")>=0||p.rating==="世界遗产");
+  }).length;
+}
+
+function renderList(arr){
+  var list=document.getElementById("list"),show=arr.slice(0,100),html="";
+  show.forEach(function(p){
+    // H-20: coerce lat/lng to a finite Number so they cannot smuggle JS
+    // into the inline onclick attribute even if the server returns a
+    // bad type. data-* attributes carry the values; a single delegated
+    // click handler (set up in setupUI) actually navigates.
+    var lat = Number(p.lat), lng = Number(p.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+    var cls="s";if(p.type==="food")cls="f";else if(p.rating==="世界遗产")cls="w";else if(p.rating==="国家级旅游度假区")cls="r";else if(p.rating&&p.rating.indexOf("街区")>=0)cls="l";
+    var tag=p.type==="food"?"食":p.rating==="世界遗产"?"世":p.rating==="国家级旅游度假区"?"度":(p.rating||"景").replace("国家级旅游","");
+    html+='<div class="item" data-lat="'+lat+'" data-lng="'+lng+'">';
+    html+='<div class="dot '+cls+'"></div>';
+    html+='<div class="info"><div class="name">'+esc(p.name)+'</div><div class="sub">'+esc(p.city||"")+'</div></div>';
+    html+='<div class="tag '+cls+'">'+tag+'</div></div>';
+  });
+  if(arr.length>100)html+='<div style="text-align:center;color:#999;font-size:11px;padding:4px">显示 100 / 总 ' + arr.length + ' 个</div>';
+  list.innerHTML=html;
+}
+
+function esc(s){if(!s)return "";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function flyTo(lat,lng){if(map)map.setZoomAndCenter(14,[lng,lat]);if(isMobile()&&!panel.classList.contains("collapsed"))togglePanel()}
+
+function setupUI(){
+  var btns=document.querySelectorAll("#filters button");
+    // Mode switch
+  document.querySelectorAll(".mode-btn").forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll(".mode-btn").forEach(function(b){ b.classList.remove("active"); });
+      this.classList.add("active");
+      isTripMode = this.getAttribute("data-mode") === "plan";
+      document.getElementById("tripForm").style.display = isTripMode ? "block" : "none";
+      document.getElementById("search").style.display = isTripMode ? "none" : "block";
+      document.getElementById("filters").style.display = isTripMode ? "none" : "block";
+      document.getElementById("stats").style.display = isTripMode ? "none" : "block";
+      if (!isTripMode) { updateClusterer(); }
+    };
+  });
+  document.getElementById("tripBtn").onclick = doPlanTrip;
+  // ENTER key in trip inputs
+  document.getElementById("tripOrigin").onkeydown = function(e){ if(e.keyCode===13) doPlanTrip(); };
+  document.getElementById("tripDest").onkeydown = function(e){ if(e.keyCode===13) doPlanTrip(); };
+  // H-20: single delegated click listener for the POI list. Both
+  // renderList() and showTripDays() emit <div class="item" data-lat
+  // data-lng> rows; this handler flies to the coords. Replaces the
+  // previous inline onclick="flyTo(...)" string concat (XSS-prone if
+  // lat/lng ever become attacker-controlled).
+  document.getElementById("list").addEventListener("click", function(e){
+    var item = e.target.closest(".item");
+    if (!item || item.dataset.lat === undefined) return;
+    var lat = parseFloat(item.dataset.lat), lng = parseFloat(item.dataset.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+    flyTo(lat, lng);
+  });
+  btns.forEach(function(btn){
+    btn.onclick=function(){
+      btns.forEach(function(b){b.classList.remove("active")});
+      this.classList.add("active");
+      currentFilter=this.getAttribute("data-type");
+      // All filters are applied client-side against the full POI set loaded
+      // once at startup. Per-category server fetches were removed because
+      // they raced the filterData() rating-equality check: if the server
+      // returned 0 rows for an under-tagged category (e.g. "世界" / "度假"
+      // have no rows with the dedicated rating), the click silently did
+      // nothing.
+      allPois = allPoisFull;
+      var f = filterData();
+      updateStats(f);
+      renderList(f.slice(0, 100));
+      updateClusterer();
+    };
+  });
+  // Debounced 200ms to avoid full re-render on every keystroke for large datasets.
+  document.getElementById("kw").oninput = debounce(function(){
+    var q = this.value.trim().toLowerCase();
+    if(!q){
+      // Restore full data when search is cleared
+      updateClusterer();
+      var full = filterData();
+      updateStats(full);
+      renderList(full.slice(0, 100));
+      status("显示了 " + full.length + " 个标记");
+      return;
+    }
+    var base = filterData();
+    var filtered = base.filter(function(p){
+      return (p.name && p.name.toLowerCase().indexOf(q) >= 0)
+          || (p.city && p.city.toLowerCase().indexOf(q) >= 0);
+    });
+    updateStats(filtered);
+    renderList(filtered.slice(0, 100));
+    updateClusterer(filtered);
+    status("搜索: " + filtered.length + " 个结果");
+  }, 200);
+}
+// User-location state and helpers
+var userLocationMarker = null;
+function setLocateBtnState(state, label){
+  var btn = document.getElementById("locateBtn");
+  if(!btn) return;
+  btn.classList.remove("is-loading","is-success","is-error");
+  if(state) btn.classList.add("is-" + state);
+  btn.disabled = state === "loading";
+  // Always reset the icon to the pin when no label override is needed
+  btn.textContent = label || "📍";
+}
+function placeUserMarker(lat, lng){
+  if(!map) return;
+  // Remove previous marker to avoid stacking
+  if(userLocationMarker){ map.remove(userLocationMarker); userLocationMarker = null; }
+  userLocationMarker = new AMap.Marker({
+    position: [lng, lat],
+    content: '<div class="user-marker-wrap"><div class="user-marker-pulse"></div><div class="user-marker-dot"></div></div>',
+    offset: new AMap.Pixel(-9, -9),
+    zIndex: 200,
+    title: "我的位置"
+  });
+  userLocationMarker.setMap(map);
+}
+function doLocate(){
+  function showOnMap(lat,lng,label){
+    userPosition={lat:lat,lng:lng,label:label};
+    if(map){
+      map.setZoomAndCenter(15,[lng,lat]);
+      placeUserMarker(lat, lng);
+    }
+    status("✓ 定位成功: " + (label||"当前定位"));
+    setLocateBtnState("success");
+    toast("已定位到 " + (label||"当前城市"), "success");
+    setTimeout(function(){ setLocateBtnState(null); }, 1800);
+  }
+  function fail(msg){
+    status("✗ " + msg);
+    setLocateBtnState("error");
+    toast(msg, "error");
+    setTimeout(function(){ setLocateBtnState(null); }, 2200);
+  }
+  // Immediate visual feedback so the user knows the click was registered
+  setLocateBtnState("loading", "⏳");
+  status("正在定位...");
+  toast("正在定位…", null);
+
+  // If we already have an IP-based position cached from page load, use it
+  // as instant feedback while we try to refine with the browser geolocation
+  // API. (Browser may refuse on insecure origins; the error callback below
+  // then falls back to IP.)
+  if(userPosition && userPosition.fromIP){
+    placeUserMarker(userPosition.lat, userPosition.lng);
+    map.setZoomAndCenter(11, [userPosition.lng, userPosition.lat]);
+  }
+
+  if(navigator.geolocation){
+    // Mobile GPS cold-start can take 10–30s; the previous 5s timeout
+    // caused TIMEOUT errors on phones. Bump timeout on mobile and add a
+    // two-stage fallback so a high-accuracy timeout retries with low-
+    // accuracy (network / WiFi based, returns in 1–3s).
+    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+    function tryBrowserGeo(highAcc){
+      var opts = highAcc
+        ? {enableHighAccuracy:true, timeout:isMobile ? 15000 : 5000, maximumAge:60000}
+        : {enableHighAccuracy:false, timeout:8000, maximumAge:60000};
+      navigator.geolocation.getCurrentPosition(function(pos){
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        if (!isFinite(lat) || !isFinite(lng)) { fail("定位坐标无效"); return; }
+        var acc = pos.coords.accuracy;
+        var src = highAcc ? "GPS" : "网络";
+        var label = "浏览器定位(" + src + ")" + (isFinite(acc) ? " ±" + Math.round(acc) + "m" : "");
+        showOnMap(lat, lng, label);
+      },function(err){
+        console.log("Browser geo failed (" + (highAcc ? "high" : "low") + " acc):", err);
+        if (highAcc && err && err.code === 3) {
+          // TIMEOUT on high-accuracy → retry with low-accuracy once.
+          status("GPS 超时，重试网络定位...");
+          tryBrowserGeo(false);
+          return;
+        }
+        if(userPosition && userPosition.fromIP){
+          showOnMap(userPosition.lat, userPosition.lng, (userPosition.province||"") + " " + (userPosition.city||"") + " (IP)");
+        } else {
+          doIPLocate(showOnMap, fail);
+        }
+      },opts);
+    }
+    tryBrowserGeo(true);
+  } else {
+    // Not a secure context → IP fallback or cached position
+    if(userPosition && userPosition.fromIP){
+      showOnMap(userPosition.lat, userPosition.lng, (userPosition.province||"") + " " + (userPosition.city||"") + " (IP)");
+    } else {
+      doIPLocate(showOnMap, fail);
+    }
+  }
+}
+function doIPLocate(showOnMap, onFail){
+  status("使用IP定位...");
+  fetch("https://restapi.amap.com/v3/ip?key=" + AMAP_KEY)
+    .then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function(data){
+      if(data && data.status === "1" && data.rectangle){
+        var rect = data.rectangle.split(";");
+        var lng1 = parseFloat(rect[0].split(",")[0]);
+        var lat1 = parseFloat(rect[0].split(",")[1]);
+        var lng2 = parseFloat(rect[1].split(",")[0]);
+        var lat2 = parseFloat(rect[1].split(",")[1]);
+        var centerLng = (lng1 + lng2) / 2;
+        var centerLat = (lat1 + lat2) / 2;
+        showOnMap(centerLat, centerLng, (data.province||"") + " " + (data.city||""));
+      } else {
+        // Hide technical AMap info (e.g. USERKEY_PLAT_NOMATCH) — surface a
+        // user-friendly hint that points to the real fix (allow browser geo).
+        var msg = "IP 定位不可用，请在浏览器中允许定位权限后重试";
+        if(onFail) onFail(msg); else status(msg);
+      }
+    }).catch(function(e){
+      console.log("IP geo failed:", e);
+      var msg = "网络异常，无法定位。请检查网络后重试";
+      if(onFail) onFail(msg); else status(msg);
+    });
+}
+
+/* === Trip Planner === */
+var tripRoute = null, tripMarkers = [];
+function doPlanTrip() {
+  var origin = document.getElementById("tripOrigin").value.trim();
+  var dest = document.getElementById("tripDest").value.trim();
+  if (!origin || !dest) { document.getElementById("tripStatus").textContent = "请填写出发地和目的地"; return; }
+  var mode = document.getElementById("tripMode").value;
+  document.getElementById("tripStatus").textContent = "规划中...";
+  document.getElementById("tripBtn").disabled = true;
+  var url = API_BASE + "/api/plan_trip?origin=" + encodeURIComponent(origin) + "&dest=" + encodeURIComponent(dest) + "&mode=" + mode;
+  fetch(url).then(function(r){ return r.json(); }).then(function(d){
+    document.getElementById("tripBtn").disabled = false;
+    if (d.error) { document.getElementById("tripStatus").textContent = d.error; return; }
+    document.getElementById("tripStatus").textContent = "找到 " + d.total_pois + " 个点，约" + d.route.duration_text;
+    showTripRoute(d);
+  }).catch(function(e){
+    document.getElementById("tripBtn").disabled = false;
+    document.getElementById("tripStatus").textContent = "请求失败，请检查网络或服务器";
+  });
+}
+function showTripRoute(d) {
+  // Clear existing route + markers
+  if (tripRoute) { map.remove(tripRoute); tripRoute = null; }
+  tripMarkers.forEach(function(m){ m.setMap(null); });
+  tripMarkers = [];
+  
+  // Draw route polyline
+  var points = d.route.polyline.map(function(p){ return [p[1], p[0]]; }); // [lng, lat]
+  tripRoute = new AMap.Polyline({
+    path: points, strokeColor: "#c0392b", strokeWeight: 4, strokeOpacity: 0.8,
+    strokeStyle: "solid", lineJoin: "round"
+  });
+  tripRoute.setMap(map);
+  
+  // Fit bounds
+  map.setFitView([tripRoute], false, [60, 60, 60, 60]);
+  
+  // Mark origin and destination
+  var originMarker = new AMap.Marker({
+    position: [d.origin.lng, d.origin.lat],
+    content: '<div style="background:#27ae60;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>',
+    offset: new AMap.Pixel(-7, -7), title: d.origin.name
+  });
+  originMarker.setMap(map);
+  tripMarkers.push(originMarker);
+  
+  var destMarker = new AMap.Marker({
+    position: [d.destination.lng, d.destination.lat],
+    content: '<div style="background:#c0392b;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3)"></div>',
+    offset: new AMap.Pixel(-7, -7), title: d.destination.name
+  });
+  destMarker.setMap(map);
+  tripMarkers.push(destMarker);
+  
+  // Show itinerary list
+  showTripDays(d);
+}
+function showTripDays(d) {
+  var html = '<div style="padding:4px 0">';
+  html += '<div style="font-size:13px;color:#333;margin-bottom:6px">路线: ' + d.origin.name + ' → ' + d.destination.name + '</div>';
+  html += '<div style="font-size:11px;color:#888;margin-bottom:8px">' + d.route.distance_text + ' · ' + d.route.duration_text + ' · 共' + d.total_pois + '个沿途点</div>';
+  d.days.forEach(function(day){
+    html += '<div style="font-size:12px;font-weight:700;color:#c0392b;margin:6px 0 3px;padding:2px 0;border-bottom:1px solid #eee">' + day.title + '</div>';
+    day.pois.forEach(function(p){
+      // H-20: same defensive coercion + data-* attributes as renderList().
+      var lat = Number(p.lat), lng = Number(p.lng);
+      if (!isFinite(lat) || !isFinite(lng)) return;
+      var tag = p.type === "food" ? "食" : (p.rating || "景");
+      var cls = p.type === "food" ? "f" : "s";
+      html += '<div class="item" data-lat="' + lat + '" data-lng="' + lng + '">';
+      html += '<div class="dot ' + cls + '"></div>';
+      html += '<div class="info"><div class="name">' + esc(p.name) + '</div>';
+      html += '<div class="sub">' + esc(p.city || "") + ' · ' + esc(p.description || "") + '</div></div>';
+      html += '<div class="tag ' + cls + '">' + esc(tag) + '</div></div>';
+    });
+    if (day.pois.length === 0) html += '<div style="font-size:11px;color:#999;padding:2px 8px">该段暂无标注点</div>';
+  });
+  html += '</div>';
+  document.getElementById("list").innerHTML = html;
+}
+window.addEventListener("resize",function(){
+    // Collapse panel on mobile when window resizes
+    if(isMobile() && !panel.classList.contains("collapsed")) {
+      panel.classList.add("collapsed");
+    }
+  });
+// Handle orientation change on mobile
+window.addEventListener("orientationchange",function(){
+  setTimeout(function(){
+    if(isMobile() && !panel.classList.contains("collapsed")) {
+      panel.classList.add("collapsed");
+    }
+    // Re-render map to fix potential rendering issues after orientation change
+    if(map) map.resize();
+  }, 200);
+});
+</script>
+</body>
+</html>
+
+

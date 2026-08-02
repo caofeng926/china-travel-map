@@ -1,0 +1,3 @@
+# China Travel Map Server
+# 纯Python标准库，无需额外依赖
+# Python >= 3.8

@@ -1,0 +1,25 @@
+{
+  "name": "中国旅游地图",
+  "short_name": "旅游地图",
+  "description": "中国旅游景点地图，5A/4A/3A 景区、世界遗产、度假区",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#c0392b",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iI2MwMzkyYiIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iODAiIHI9IjMyIiBmaWxsPSIjZmZmIi8+PHRleHQgeD0iOTYiIHk9IjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2MwMzkyYiIgZm9udC1mYW1pbHk9IkFyaWFsIj7kuK08L3RleHQ+PHJlY3QgeD0iMzIiIHk9IjEzMCIgd2lkdGg9IjEyOCIgaGVpZ2h0PSIzNCIgcng9IjYiIGZpbGw9IiNmZmYiLz48dGV4dCB4PSI5NiIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2MwMzkyYiIgZm9udC1mYW1pbHk9IkFyaWFsIj7ml4XmuLjlnLDlm748L3RleHQ+PC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iI2MwMzkyYiIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iODAiIHI9IjMyIiBmaWxsPSIjZmZmIi8+PHRleHQgeD0iOTYiIHk9IjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2MwMzkyYiIgZm9udC1mYW1pbHk9IkFyaWFsIj7kuK08L3RleHQ+PHJlY3QgeD0iMzIiIHk9IjEzMCIgd2lkdGg9IjEyOCIgaGVpZ2h0PSIzNCIgcng9IjYiIGZpbGw9IiNmZmYiLz48dGV4dCB4PSI5NiIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2MwMzkyYiIgZm9udC1mYW1pbHk9IkFyaWFsIj7ml4XmuLjlnLDlm748L3RleHQ+PC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

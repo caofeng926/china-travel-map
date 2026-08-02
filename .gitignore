@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Runtime / data
+*.db
+*.db-wal
+*.db-shm
+*.bak
+*.bak-wal
+*.bak-shm
+server.out.log
+server.err.log
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Build / node (not currently used, but be safe)
+node_modules/
+dist/
+build/
