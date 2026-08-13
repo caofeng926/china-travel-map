@@ -118,6 +118,62 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        elif self.path == "/api/ip_locate":
+            # Server-side IP geolocation proxy. The frontend hits this same-
+            # origin endpoint to dodge CORS / browser-side network blocks
+            # against public IP APIs (e.g. ipwho.is from inside China).
+            # We try ipinfo first (returns a clean "lat,lng" string), then
+            # fall back to ipwho.is. Optional AMap /v3/ip attempt last.
+            import json as _json, urllib.request as _ur
+            # Client IP: trust the first hop in X-Forwarded-For when the
+            # request is fronted by nginx; otherwise fall back to the socket
+            # peer. Trimmed to avoid whitespace / extra commas.
+            xff = self.headers.get("X-Forwarded-For", "") or ""
+            client_ip = xff.split(",")[0].strip() if xff else self.client_address[0]
+            ua = {"User-Agent": "china-travel-map/1.0"}
+            # --- ipinfo.io ---
+            try:
+                url = ("https://ipinfo.io/" + client_ip + "/json") if client_ip else "https://ipinfo.io/json"
+                req = _ur.Request(url, headers=ua)
+                with _ur.urlopen(req, timeout=4) as r:
+                    data = _json.loads(r.read().decode("utf-8", "replace"))
+                if "loc" in data and "," in data["loc"]:
+                    lat_s, lng_s = data["loc"].split(",", 1)
+                    self._json({
+                        "ok": True,
+                        "source": "ipinfo",
+                        "ip": data.get("ip", client_ip),
+                        "lat": float(lat_s),
+                        "lng": float(lng_s),
+                        "country": data.get("country", ""),
+                        "region":  data.get("region",  ""),
+                        "city":    data.get("city",    ""),
+                    })
+                    return
+            except Exception as _e:
+                print("ipinfo failed:", _e, file=sys.stderr)
+            # --- ipwho.is ---
+            try:
+                url = ("https://ipwho.is/" + client_ip) if client_ip else "https://ipwho.is/"
+                req = _ur.Request(url, headers=ua)
+                with _ur.urlopen(req, timeout=4) as r:
+                    data = _json.loads(r.read().decode("utf-8", "replace"))
+                if data.get("success") is not False and isinstance(data.get("latitude"), (int, float)):
+                    self._json({
+                        "ok": True,
+                        "source": "ipwho.is",
+                        "ip": data.get("ip", client_ip),
+                        "lat": float(data["latitude"]),
+                        "lng": float(data["longitude"]),
+                        "country": data.get("country", ""),
+                        "region":  data.get("region",  ""),
+                        "city":    data.get("city",    ""),
+                    })
+                    return
+            except Exception as _e:
+                print("ipwho.is failed:", _e, file=sys.stderr)
+            self._json({"ok": False, "error": "all_ip_apis_failed"}, status=503)
+            return
         else:
             super().do_GET()
 

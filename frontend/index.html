@@ -1051,32 +1051,33 @@ function doIPLocate(showOnMap, onFail){
     if(onFail) onFail(msg); else status(msg);
   }
 
-  // Public, no-key IP geolocation. We try this FIRST so the locate button
-  // keeps working on HTTP origins and even when the AMap key lacks the
-  // "Web Service" permission (AMap returns USERKEY_PLAT_NOMATCH when its
-  // /v3/ip endpoint is called with a JS-API-only key).
-  function tryPublicIP(){
-    return fetch("https://ipwho.is/", { mode: "cors" })
+  // Try the same-origin backend proxy first. The backend hits ipinfo/ipwho.is
+  // from the server side, dodging browser-side CORS / network blocks that
+  // made the direct browser fetch of ipwho.is fail with "Failed to fetch".
+  function tryServerProxy(){
+    return fetch(API_BASE + "/api/ip_locate", { credentials: "omit" })
       .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d){
-        if(d && d.success !== false && isFinite(d.latitude) && isFinite(d.longitude)){
-          return { lat: d.latitude, lng: d.longitude, label: (d.country||"") + " " + (d.region||"") + " " + (d.city||"") + " (公共IP)" };
+        if(d && d.ok && isFinite(d.lat) && isFinite(d.lng)){
+          return { lat: d.lat, lng: d.lng, label: (d.country||"") + " " + (d.region||"") + " " + (d.city||"") + " (" + (d.source||"IP") + ")" };
         }
         return null;
       }).catch(function(e){
-        console.log("Public IP geo failed:", e);
+        console.log("Server IP proxy failed:", e);
         return null;
       });
   }
 
-  // Public IP first; only fall back to AMap if the no-key call misses.
-  tryPublicIP().then(function(pub){
-    if(pub){
-      showOnMap(pub.lat, pub.lng, pub.label);
+  tryServerProxy().then(function(proxy){
+    if(proxy){
+      showOnMap(proxy.lat, proxy.lng, proxy.label);
       return;
     }
+    // Server proxy unavailable. Fall back to direct AMap /v3/ip when the
+    // configured key has the Web Service permission; otherwise surface a
+    // clear error so the next reader knows what's misconfigured.
     if(!key){
-      failWith("公共 IP 定位失败且未配置 AMAP_KEY");
+      failWith("服务端 IP 代理失败且未配置 AMAP_KEY");
       return;
     }
     return fetch("https://restapi.amap.com/v3/ip?key=" + key)
