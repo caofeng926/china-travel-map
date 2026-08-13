@@ -170,7 +170,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <div id="map"></div>
 <div id="pl"><div class="loading"><div class="spinner"></div>正在加载中国旅游地图...</div></div>
 <button id="toggleBtn" onclick="togglePanel()">☰</button>
-<button id="locateBtn" class="is-idle" title="定位到我的当前位置" aria-label="定位到我的当前位置" onclick="doLocate()">📍</button><span id="locateCaption" class="is-hidden" aria-hidden="true">我的位置</span>
+<button id="locateBtn" class="is-idle" title="使用浏览器定位到我的当前位置（需允许定位权限）" aria-label="使用浏览器定位到我的当前位置（需允许定位权限）" onclick="doLocate()">📍</button><span id="locateCaption" class="is-hidden" aria-hidden="true">我的位置</span>
 <div id="panel">
   <div class="handle-bar"></div>
   <h2><span class="ti">中国旅游地图 <span class="sm">7,000+ POI</span></span><span class="tg" id="toggleArrow">▲</span></h2>
@@ -485,28 +485,7 @@ function createMap(){
     map=new AMap.Map("map",{center:[109.5,36.5],zoom:5,mapStyle:"amap://styles/light"});
     hidePL();
     status("地图OK，加载数据...");
-  // 添加定位控件
-  // Skip auto-locate on HTTP (geolocation requires HTTPS)
-  // Use IP-based geolocation as fallback - works on HTTP
-  fetch('https://restapi.amap.com/v3/ip?key=' + AMAP_KEY)
-    .then(function(r){return r.json()})
-    .then(function(data){
-      if(data && data.status === "1" && data.rectangle) {
-        var rect = data.rectangle.split(";");
-        if(rect.length === 2) {
-          var lng1 = parseFloat(rect[0].split(",")[0]);
-          var lat1 = parseFloat(rect[0].split(",")[1]);
-          var lng2 = parseFloat(rect[1].split(",")[0]);
-          var lat2 = parseFloat(rect[1].split(",")[1]);
-          if (!isFinite(lng1) || !isFinite(lat1) || !isFinite(lng2) || !isFinite(lat2)) return;
-          var centerLng = (lng1 + lng2) / 2;
-          var centerLat = (lat1 + lat2) / 2;
-          if (!isFinite(centerLat) || !isFinite(centerLng)) return;
-          userPosition = {lat: centerLat, lng: centerLng, fromIP: true, province: data.province, city: data.city};
-          console.log("IP定位成功:", data.province, data.city);
-        }
-      }
-    }).catch(function(e){console.log("IP定位失败:", e);});
+    // 不再在页面加载时自动用 IP 定位，默认仅使用浏览器原生定位（点击右下角按钮触发）。
 
     // Show loading progress
     var el = document.getElementById("pl");
@@ -986,120 +965,44 @@ function doLocate(){
   status("正在定位...");
   toast("正在定位…", null);
 
-  // If we already have an IP-based position cached from page load, use it
-  // as instant feedback while we try to refine with the browser geolocation
-  // API. (Browser may refuse on insecure origins; the error callback below
-  // then falls back to IP.)
-  if(userPosition && userPosition.fromIP){
-    placeUserMarker(userPosition.lat, userPosition.lng);
-    map.setZoomAndCenter(11, [userPosition.lng, userPosition.lat]);
+  if(!navigator.geolocation){
+    fail("当前浏览器不支持定位，请使用最新版 Chrome / Safari / Edge 后重试");
+    return;
   }
 
-  if(navigator.geolocation){
-    // Mobile GPS cold-start can take 10–30s; the previous 5s timeout
-    // caused TIMEOUT errors on phones. Bump timeout on mobile and add a
-    // two-stage fallback so a high-accuracy timeout retries with low-
-    // accuracy (network / WiFi based, returns in 1–3s).
-    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
-    function tryBrowserGeo(highAcc){
-      var opts = highAcc
-        ? {enableHighAccuracy:true, timeout:isMobile ? 15000 : 5000, maximumAge:60000}
-        : {enableHighAccuracy:false, timeout:8000, maximumAge:60000};
-      navigator.geolocation.getCurrentPosition(function(pos){
-        var lat = pos.coords.latitude, lng = pos.coords.longitude;
-        if (!isFinite(lat) || !isFinite(lng)) { fail("定位坐标无效"); return; }
-        var acc = pos.coords.accuracy;
-        var src = highAcc ? "GPS" : "网络";
-        var label = "浏览器定位(" + src + ")" + (isFinite(acc) ? " ±" + Math.round(acc) + "m" : "");
-        showOnMap(lat, lng, label);
-      },function(err){
-        console.log("Browser geo failed (" + (highAcc ? "high" : "low") + " acc):", err);
-        if (highAcc && err && err.code === 3) {
-          // TIMEOUT on high-accuracy → retry with low-accuracy once.
-          status("GPS 超时，重试网络定位...");
-          tryBrowserGeo(false);
-          return;
-        }
-        if(userPosition && userPosition.fromIP){
-          showOnMap(userPosition.lat, userPosition.lng, (userPosition.province||"") + " " + (userPosition.city||"") + " (IP)");
-        } else {
-          doIPLocate(showOnMap, fail);
-        }
-      },opts);
-    }
-    tryBrowserGeo(true);
-  } else {
-    // Not a secure context → IP fallback or cached position
-    if(userPosition && userPosition.fromIP){
-      showOnMap(userPosition.lat, userPosition.lng, (userPosition.province||"") + " " + (userPosition.city||"") + " (IP)");
-    } else {
-      doIPLocate(showOnMap, fail);
-    }
+  // 默认只走浏览器原生定位，不再静默回退到 IP 定位。
+  // 手机 GPS 冷启动可能要 10–30s，故给到 15s；超时再试一次低精度（网络/WiFi）。
+  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  function tryBrowserGeo(highAcc){
+    var opts = highAcc
+      ? {enableHighAccuracy:true, timeout:isMobile ? 15000 : 5000, maximumAge:60000}
+      : {enableHighAccuracy:false, timeout:8000, maximumAge:60000};
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (!isFinite(lat) || !isFinite(lng)) { fail("定位坐标无效"); return; }
+      var acc = pos.coords.accuracy;
+      var src = highAcc ? "GPS" : "网络";
+      var label = "浏览器定位(" + src + ")" + (isFinite(acc) ? " ±" + Math.round(acc) + "m" : "");
+      showOnMap(lat, lng, label);
+    },function(err){
+      console.log("Browser geo failed (" + (highAcc ? "high" : "low") + " acc):", err);
+      if (highAcc && err && err.code === 3) {
+        // TIMEOUT on high-accuracy → retry with low-accuracy once.
+        status("GPS 超时，重试网络定位...");
+        tryBrowserGeo(false);
+        return;
+      }
+      // err.code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+      var reason;
+      if (err && err.code === 1) reason = "用户拒绝了定位权限";
+      else if (err && err.code === 2) reason = "当前位置不可用";
+      else if (err && err.code === 3) reason = "定位超时";
+      else reason = (err && err.message) || "定位失败";
+      fail("无法定位（" + reason + "），请点击地址栏左侧的🔒/ⓘ图标允许定位权限后再试");
+    },opts);
   }
+  tryBrowserGeo(true);
 }
-function doIPLocate(showOnMap, onFail){
-  status("使用IP定位...");
-  var key = AMAP_KEY || "";
-
-  // Surface a meaningful message when everything below fails — include the
-  // AMap error info so the next reader can tell a misconfigured key
-  // (USERKEY_PLAT_NOMATCH / INVALID_USER_KEY) from an actual network failure.
-  function failWith(detail){
-    var msg = "IP 定位不可用";
-    if(detail) msg += "（" + detail + "）";
-    msg += "，请在浏览器中允许定位权限后重试";
-    if(onFail) onFail(msg); else status(msg);
-  }
-
-  // Try the same-origin backend proxy first. The backend hits ipinfo/ipwho.is
-  // from the server side, dodging browser-side CORS / network blocks that
-  // made the direct browser fetch of ipwho.is fail with "Failed to fetch".
-  function tryServerProxy(){
-    return fetch(API_BASE + "/api/ip_locate", { credentials: "omit" })
-      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d){
-        if(d && d.ok && isFinite(d.lat) && isFinite(d.lng)){
-          return { lat: d.lat, lng: d.lng, label: (d.country||"") + " " + (d.region||"") + " " + (d.city||"") + " (" + (d.source||"IP") + ")" };
-        }
-        return null;
-      }).catch(function(e){
-        console.log("Server IP proxy failed:", e);
-        return null;
-      });
-  }
-
-  tryServerProxy().then(function(proxy){
-    if(proxy){
-      showOnMap(proxy.lat, proxy.lng, proxy.label);
-      return;
-    }
-    // Server proxy unavailable. Fall back to direct AMap /v3/ip when the
-    // configured key has the Web Service permission; otherwise surface a
-    // clear error so the next reader knows what's misconfigured.
-    if(!key){
-      failWith("服务端 IP 代理失败且未配置 AMAP_KEY");
-      return;
-    }
-    return fetch("https://restapi.amap.com/v3/ip?key=" + key)
-      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(data){
-        if(data && data.status === "1" && data.rectangle){
-          var rect = data.rectangle.split(";");
-          var lng1 = parseFloat(rect[0].split(",")[0]);
-          var lat1 = parseFloat(rect[0].split(",")[1]);
-          var lng2 = parseFloat(rect[1].split(",")[0]);
-          var lat2 = parseFloat(rect[1].split(",")[1]);
-          showOnMap((lat1+lat2)/2, (lng1+lng2)/2, (data.province||"") + " " + (data.city||"") + " (高德IP)");
-        } else {
-          failWith((data && data.info) || "INVALID_USER_KEY");
-        }
-      }).catch(function(e){
-        console.log("AMap IP geo failed:", e);
-        failWith("网络异常");
-      });
-  });
-}
-
 /* === Trip Planner === */
 var tripRoute = null, tripMarkers = [];
 function doPlanTrip() {
