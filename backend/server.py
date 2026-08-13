@@ -46,7 +46,8 @@ def _si(v, d=None):
     try: return int(v) if v is not None and v != "" else d
     except: return d
 
-HOST, PORT = "0.0.0.0", 8765
+HOST = os.environ.get("HOST", "0.0.0.0")
+PORT = 8765
 FRONTEND = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
 # Security config
