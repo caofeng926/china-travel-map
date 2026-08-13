@@ -1039,32 +1039,64 @@ function doLocate(){
 }
 function doIPLocate(showOnMap, onFail){
   status("使用IP定位...");
-  fetch("https://restapi.amap.com/v3/ip?key=" + AMAP_KEY)
-    .then(function(r){
-      if(!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    })
-    .then(function(data){
-      if(data && data.status === "1" && data.rectangle){
-        var rect = data.rectangle.split(";");
-        var lng1 = parseFloat(rect[0].split(",")[0]);
-        var lat1 = parseFloat(rect[0].split(",")[1]);
-        var lng2 = parseFloat(rect[1].split(",")[0]);
-        var lat2 = parseFloat(rect[1].split(",")[1]);
-        var centerLng = (lng1 + lng2) / 2;
-        var centerLat = (lat1 + lat2) / 2;
-        showOnMap(centerLat, centerLng, (data.province||"") + " " + (data.city||""));
-      } else {
-        // Hide technical AMap info (e.g. USERKEY_PLAT_NOMATCH) — surface a
-        // user-friendly hint that points to the real fix (allow browser geo).
-        var msg = "IP 定位不可用，请在浏览器中允许定位权限后重试";
-        if(onFail) onFail(msg); else status(msg);
-      }
-    }).catch(function(e){
-      console.log("IP geo failed:", e);
-      var msg = "网络异常，无法定位。请检查网络后重试";
-      if(onFail) onFail(msg); else status(msg);
-    });
+  var key = AMAP_KEY || "";
+
+  // Surface a meaningful message when everything below fails — include the
+  // AMap error info so the next reader can tell a misconfigured key
+  // (USERKEY_PLAT_NOMATCH / INVALID_USER_KEY) from an actual network failure.
+  function failWith(detail){
+    var msg = "IP 定位不可用";
+    if(detail) msg += "（" + detail + "）";
+    msg += "，请在浏览器中允许定位权限后重试";
+    if(onFail) onFail(msg); else status(msg);
+  }
+
+  // Public, no-key IP geolocation. We try this FIRST so the locate button
+  // keeps working on HTTP origins and even when the AMap key lacks the
+  // "Web Service" permission (AMap returns USERKEY_PLAT_NOMATCH when its
+  // /v3/ip endpoint is called with a JS-API-only key).
+  function tryPublicIP(){
+    return fetch("https://ipwho.is/", { mode: "cors" })
+      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d){
+        if(d && d.success !== false && isFinite(d.latitude) && isFinite(d.longitude)){
+          return { lat: d.latitude, lng: d.longitude, label: (d.country||"") + " " + (d.region||"") + " " + (d.city||"") + " (公共IP)" };
+        }
+        return null;
+      }).catch(function(e){
+        console.log("Public IP geo failed:", e);
+        return null;
+      });
+  }
+
+  // Public IP first; only fall back to AMap if the no-key call misses.
+  tryPublicIP().then(function(pub){
+    if(pub){
+      showOnMap(pub.lat, pub.lng, pub.label);
+      return;
+    }
+    if(!key){
+      failWith("公共 IP 定位失败且未配置 AMAP_KEY");
+      return;
+    }
+    return fetch("https://restapi.amap.com/v3/ip?key=" + key)
+      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(data){
+        if(data && data.status === "1" && data.rectangle){
+          var rect = data.rectangle.split(";");
+          var lng1 = parseFloat(rect[0].split(",")[0]);
+          var lat1 = parseFloat(rect[0].split(",")[1]);
+          var lng2 = parseFloat(rect[1].split(",")[0]);
+          var lat2 = parseFloat(rect[1].split(",")[1]);
+          showOnMap((lat1+lat2)/2, (lng1+lng2)/2, (data.province||"") + " " + (data.city||"") + " (高德IP)");
+        } else {
+          failWith((data && data.info) || "INVALID_USER_KEY");
+        }
+      }).catch(function(e){
+        console.log("AMap IP geo failed:", e);
+        failWith("网络异常");
+      });
+  });
 }
 
 /* === Trip Planner === */
