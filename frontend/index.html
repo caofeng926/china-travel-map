@@ -46,6 +46,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 #filters{padding:0 10px 6px;display:flex;gap:3px;flex-wrap:wrap}
 #filters button{padding:3px 8px;border:none;border-radius:4px;font-size:10px;cursor:pointer;background:#eee;color:#666;font-weight:600;touch-action:manipulation}
 #filters button.active{background:#c0392b;color:#fff}
+#filters button.active[data-type="all"]{background:#888}
+/* Decorative "可多选 / 已选 N 项" hint pill inside the filter row */
+.filter-hint{align-self:center;margin-left:auto;font-size:10px;color:#888;padding:2px 7px;border-radius:999px;background:#f5f5f5;letter-spacing:.5px;white-space:nowrap;user-select:none;pointer-events:none}
+.filter-hint.is-multi{color:#c0392b;background:#fde8e6}
 #search{margin:0 10px 8px}
 #search input{width:100%;padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:11px;outline:none}
 #list{flex:1;overflow-y:auto;padding:0 10px 10px}
@@ -79,6 +83,17 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 #locateBtn.is-success{background:#27ae60;color:#fff;border-color:#27ae60}
 #locateBtn.is-error{background:#c0392b;color:#fff;border-color:#c0392b}
 @keyframes pulse{0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 10px rgba(192,57,43,0)}}
+
+#locateBtn.is-idle{animation:idleHint 2.4s ease-in-out infinite}
+#locateBtn.is-idle::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid #4285f4;opacity:.6;animation:idleHalo 2.4s ease-out infinite;pointer-events:none}
+@keyframes idleHint{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes idleHalo{0%{transform:scale(.85);opacity:.65}100%{transform:scale(1.55);opacity:0}}
+
+/* Compact locate caption (purely decorative; the button still owns the click) */
+#locateCaption{position:absolute;z-index:998;right:12px;font-size:10px;color:#666;background:rgba(255,255,255,.92);padding:3px 8px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12);pointer-events:none;transition:opacity .3s ease;letter-spacing:.5px}
+#locateCaption.is-hidden{opacity:0}
+@media(min-width:768px){#locateCaption{bottom:118px}}
+@media(max-width:767px){#locateCaption{bottom:148px;padding-bottom:max(3px,env(safe-area-inset-bottom))}}
 
 /* User position marker enhancements */
 .user-marker-wrap{position:relative;width:18px;height:18px}
@@ -155,7 +170,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 <div id="map"></div>
 <div id="pl"><div class="loading"><div class="spinner"></div>正在加载中国旅游地图...</div></div>
 <button id="toggleBtn" onclick="togglePanel()">☰</button>
-<button id="locateBtn" onclick="doLocate()">📍</button>
+<button id="locateBtn" class="is-idle" title="定位到我的当前位置" aria-label="定位到我的当前位置" onclick="doLocate()">📍</button><span id="locateCaption" class="is-hidden" aria-hidden="true">我的位置</span>
 <div id="panel">
   <div class="handle-bar"></div>
   <h2><span class="ti">中国旅游地图 <span class="sm">7,000+ POI</span></span><span class="tg" id="toggleArrow">▲</span></h2>
@@ -180,10 +195,11 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
     <div><div class="n" id="sleisure">0</div><div class="l">街区</div></div>
   </div>
   <div id="filters">
-    <button class="active" data-type="all">全部</button>
-    <button data-type="5A">5A</button><button data-type="4A">4A</button><button data-type="3A">3A</button>
-    <button data-type="leisure">街区</button><button data-type="world">世界</button>
-    <button data-type="resort">度假</button><button data-type="food">美食</button>
+    <button data-type="all" title="清除筛选，显示全部">全部</button>
+    <button data-type="5A" title="多选：5A 级景区">5A</button><button data-type="4A" title="多选：4A 级景区">4A</button><button data-type="3A" title="多选：3A 级景区">3A</button>
+    <button data-type="leisure" title="多选：国家级旅游休闲街区">街区</button><button data-type="world" title="多选：世界遗产">世界</button>
+    <button data-type="resort" title="多选：国家级旅游度假区">度假</button><button data-type="food" title="多选：特色美食">美食</button>
+    <span id="filterHint" class="filter-hint" aria-live="polite">可多选</span>
   </div>
   <div id="search"><input type="text" id="kw" placeholder="搜索景点名称或城市..."></div>
   <div id="status">加载中...</div>
@@ -381,7 +397,10 @@ function fetchRetry(url, retries, delay){
 
 window._AMapSecurityConfig={securityJsCode:((window.AMAP_CONFIG&&window.AMAP_CONFIG.amap_secret)||"")};window.AMapSecurityConfig=window._AMapSecurityConfig;
 var AMAP_KEY=(window.AMAP_CONFIG&&window.AMAP_CONFIG.amap_key)||"";
-var map=null,allPois=[],allStats=null,currentFilter="all",isTripMode=false,mapInitialized=false;
+var map=null,allPois=[],allStats=null,isTripMode=false,mapInitialized=false;
+// Active filter categories. Empty set OR a set containing only "all" => show everything.
+// Multi-select: a POI is included if it matches ANY active filter (union).
+var activeFilters = new Set(["all"]);
 var userPosition=null;
 function getDistance(lat1,lng1,lat2,lng2){
   var R=6371000;
@@ -717,19 +736,31 @@ function updateClusterer(pois){
 }
 function filterData(){
   var arr=allPois;
-  if(currentFilter==="all")return arr;
-  if(currentFilter==="food")return arr.filter(function(p){return p.type==="food"});
-  if(currentFilter==="leisure")return arr.filter(function(p){return p.type==="scenic"&&(!p.rating||(p.rating.indexOf("街区")>=0))});
+  // Empty set OR set containing "all" => no filtering.
+  if(arr==null)return arr;
+  if(activeFilters.size===0||activeFilters.has("all"))return arr;
+  // Union: POI matches if it matches ANY active filter (multi-select).
+  return arr.filter(function(p){
+    for(var f of activeFilters){
+      if(_poiMatchesFilter(p,f))return true;
+    }
+    return false;
+  });
+}
+// Per-category predicate used by the multi-select filter. Extracted so
+// the buttons, the keyword search, and any future server-side filter
+// stay in sync on what "matches" each tag.
+function _poiMatchesFilter(p,f){
+  if(f==="all")return true;
+  if(f==="food")return p.type==="food";
+  if(f==="leisure")return p.type==="scenic"&&(!p.rating||(p.rating.indexOf("街区")>=0));
   // Resort: rating === "国家级旅游度假区" OR description contains the
   // 3-char token 度假区 (catches "5A沙漠度假区" / "4A文化旅游度假区"
   // which are real resorts tagged with the legacy rating).
-  if(currentFilter==="world")return arr.filter(function(p){
-    return p.rating==="世界遗产";
-  });
-  if(currentFilter==="resort")return arr.filter(function(p){
-    return p.rating==="国家级旅游度假区" || (p.description && p.description.indexOf("度假区")>=0);
-  });
-  return arr.filter(function(p){return p.rating===currentFilter});
+  if(f==="world")return p.rating==="世界遗产";
+  if(f==="resort")return p.rating==="国家级旅游度假区"||(p.description&&p.description.indexOf("度假区")>=0);
+  // Default: rating equality (e.g. "5A"/"4A"/"3A").
+  return p.rating===f;
 }
 
 function updateStats(arr){
@@ -797,21 +828,63 @@ function setupUI(){
     if (!isFinite(lat) || !isFinite(lng)) return;
     flyTo(lat, lng);
   });
+  // Restore a previously-saved multi-selection so refresh / revisit
+  // keeps the same view.
+  try{
+    var saved=JSON.parse(localStorage.getItem("ctm_filters")||"null");
+    if(Array.isArray(saved)&&saved.length&&saved.every(function(x){return typeof x==="string";})){
+      activeFilters=new Set(saved);
+      // If the saved set was effectively "all", collapse it so the UI
+      // matches the fresh-visit default.
+      if(activeFilters.size===1&&activeFilters.has("all"))activeFilters=new Set(["all"]);
+    }
+  }catch(e){}
+  // Paint each button to match the current selection, and update the
+  // "可多选 / 已选 N 项" hint chip.
+  function _syncFilterBtns(){
+    btns.forEach(function(b){
+      var bt=b.getAttribute("data-type");
+      if(activeFilters.has(bt))b.classList.add("active");
+      else b.classList.remove("active");
+    });
+    var hint=document.getElementById("filterHint");
+    if(hint){
+      var nonAll=[];
+      activeFilters.forEach(function(x){if(x!=="all")nonAll.push(x);});
+      if(nonAll.length===0){hint.textContent="可多选";hint.classList.remove("is-multi");}
+      else{hint.textContent="已选 "+nonAll.length+" 项";hint.classList.add("is-multi");}
+    }
+  }
+  _syncFilterBtns();
+
   btns.forEach(function(btn){
     btn.onclick=function(){
-      btns.forEach(function(b){b.classList.remove("active")});
-      this.classList.add("active");
-      currentFilter=this.getAttribute("data-type");
+      var v=this.getAttribute("data-type");
+      if(v==="all"){
+        // "全部" is exclusive: clears any other selections and shows everything.
+        activeFilters.clear();
+        activeFilters.add("all");
+      }else{
+        // Toggle this category in/out of the multi-select set.
+        activeFilters.delete("all");
+        if(activeFilters.has(v))activeFilters.delete(v);
+        else activeFilters.add(v);
+        // Empty selection => fall back to "all" so the user never sees an
+        // accidentally-empty result set.
+        if(activeFilters.size===0)activeFilters.add("all");
+      }
+      _syncFilterBtns();
+      try{localStorage.setItem("ctm_filters",JSON.stringify(Array.from(activeFilters)));}catch(e){}
       // All filters are applied client-side against the full POI set loaded
       // once at startup. Per-category server fetches were removed because
       // they raced the filterData() rating-equality check: if the server
       // returned 0 rows for an under-tagged category (e.g. "世界" / "度假"
       // have no rows with the dedicated rating), the click silently did
       // nothing.
-      allPois = allPoisFull;
-      var f = filterData();
+      allPois=allPoisFull;
+      var f=filterData();
       updateStats(f);
-      renderList(f.slice(0, 100));
+      renderList(f.slice(0,100));
       updateClusterer();
     };
   });
@@ -840,14 +913,42 @@ function setupUI(){
 }
 // User-location state and helpers
 var userLocationMarker = null;
+
+// If we've located successfully in a previous session, don't re-show the idle
+// halo + caption — the user already knows the button exists.
+(function _initLocateHint(){
+  try {
+    if (localStorage.getItem("ctm_located") === "1") {
+      var btn = document.getElementById("locateBtn");
+      if (btn) btn.classList.remove("is-idle");
+      return;
+    }
+    var cap = document.getElementById("locateCaption");
+    if (!cap) return;
+    cap.classList.remove("is-hidden");
+    setTimeout(function(){ cap.classList.add("is-hidden"); }, 5000);
+  } catch (e) { /* localStorage may be blocked; idle halo just stays on */ }
+})();
 function setLocateBtnState(state, label){
   var btn = document.getElementById("locateBtn");
   if(!btn) return;
-  btn.classList.remove("is-loading","is-success","is-error");
+  btn.classList.remove("is-loading","is-success","is-error","is-idle");
   if(state) btn.classList.add("is-" + state);
   btn.disabled = state === "loading";
   // Always reset the icon to the pin when no label override is needed
   btn.textContent = label || "📍";
+  // Once we've landed the user at least once, retire the idle halo so the
+  // button stops "advertising" itself on every page visit.
+  if(state === "success") _dismissLocateIdleHint();
+}
+function _dismissLocateIdleHint(){
+  try {
+    var btn = document.getElementById("locateBtn");
+    if(btn) btn.classList.remove("is-idle");
+    var cap = document.getElementById("locateCaption");
+    if(cap) cap.classList.add("is-hidden");
+    try { localStorage.setItem("ctm_located", "1"); } catch (e) {}
+  } catch (e) {}
 }
 function placeUserMarker(lat, lng){
   if(!map) return;
