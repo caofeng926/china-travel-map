@@ -14,7 +14,7 @@ If an AMap Web Service API key, deploy key, or any other secret is **ever commit
 2. **Revoke the old key** (or at minimum, set strict HTTP referrer / IP allowlist on it until rotation completes).
 3. **Update deployment**:
    - If using GitHub Actions secrets: update `Settings → Secrets and variables → Actions`.
-   - If using `.env` on the server: SSH in, edit `/etc/china-travel-map.env`, restart the service.
+   - If using `.env` on the server: SSH in, edit `/etc/travel-spot-marker.env`, restart the service.
 
 ## 2. Audit blast radius
 

@@ -1,7 +1,7 @@
 {
-  "name": "中国旅游地图",
-  "short_name": "旅游地图",
-  "description": "中国旅游景点地图，5A/4A/3A 景区、世界遗产、度假区",
+  "name": "旅游地点标记",
+  "short_name": "旅游地点标记",
+  "description": "旅游地点标记：5A/4A/3A 景区、世界遗产、度假区、特色美食",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

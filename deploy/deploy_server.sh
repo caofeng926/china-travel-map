@@ -1,10 +1,10 @@
 #!/bin/bash
-# China Travel Map - Production Deploy Script (Ubuntu/Debian)
+# Travel Spot Marker - Production Deploy Script (Ubuntu/Debian)
 set -euo pipefail
 
-echo "=== China Travel Map Deploy ==="
+echo "=== Travel Spot Marker Deploy ==="
 
-PROJECT_DIR="/opt/china-travel-map"
+PROJECT_DIR="/opt/travel-spot-marker"
 DOMAIN="${DOMAIN:-your-domain.com}"  # Set DOMAIN env var or edit this
 
 # --- 1. Pull latest code ---
@@ -19,7 +19,7 @@ fi
 # --- 2. Create .env if not exists ---
 if [ ! -f .env ]; then
     cat > .env <<- EOF
-# China Travel Map - Production Config
+# Travel Spot Marker - Production Config
 # Generate a random token: openssl rand -hex 32
 SEED_TOKEN=change-me-to-a-random-string
 ALLOWED_ORIGINS=https://$DOMAIN
@@ -57,11 +57,11 @@ else
 fi
 
 # --- 7. Setup Nginx (if not already) ---
-if [ ! -f /etc/nginx/sites-enabled/china-travel-map ]; then
+if [ ! -f /etc/nginx/sites-enabled/travel-spot-marker ]; then
     echo ""
     echo "=== Nginx Setup Required ==="
-    echo "  sudo cp deploy/nginx.conf /etc/nginx/sites-available/china-travel-map"
-    echo "  sudo ln -s /etc/nginx/sites-available/china-travel-map /etc/nginx/sites-enabled/"
+    echo "  sudo cp deploy/nginx.conf /etc/nginx/sites-available/travel-spot-marker"
+    echo "  sudo ln -s /etc/nginx/sites-available/travel-spot-marker /etc/nginx/sites-enabled/"
     echo "  sudo nginx -t && sudo systemctl reload nginx"
     echo "  sudo certbot --nginx -d $DOMAIN"
 fi

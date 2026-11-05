@@ -1,4 +1,4 @@
-# 中国旅游地图项目 - 代码审查报告
+# 旅游地点标记项目 - 代码审查报告
 
 > 审查范围：`backend/*.py`（5 个）、`frontend/index.html`、`frontend/app.js`、`deploy/*`（2 个）、`.github/workflows/*`、配置文件
 > 审查时间：2026-07-26

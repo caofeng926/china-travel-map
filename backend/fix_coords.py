@@ -14,7 +14,7 @@
   --city-only: 用 city 名搜索（不用景区名）
 """
 import sys, os, time, json, argparse
-sys.path.insert(0, '/Users/caofeng/AIwork/中国旅游地图/china-travel-map/backend')
+sys.path.insert(0, '/Users/caofeng/AIwork/旅游地点标记/backend')
 import urllib.request, urllib.parse
 import sqlite3
 import threading
@@ -44,7 +44,7 @@ def geocode(address, city=None):
     
     for attempt in range(MAX_RETRY):
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'china-travel-map/fix_coords.py'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'travel-spot-marker/fix_coords.py'})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
             if data.get('status') == '1' and data.get('geocodes'):
@@ -72,7 +72,7 @@ def main():
     parser.add_argument('--city-only', action='store_true', help='只用 city 名搜索')
     args = parser.parse_args()
     
-    conn = sqlite3.connect('/Users/caofeng/AIwork/中国旅游地图/china-travel-map/backend/data/china_travel.db')
+    conn = sqlite3.connect('/Users/caofeng/AIwork/旅游地点标记/backend/data/china_travel.db')
     conn.row_factory = sqlite3.Row
     
     # 找出疑似坐标不准确的记录（外部数据集的）

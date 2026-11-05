@@ -1,4 +1,4 @@
-"""Tests for China Travel Map backend modules."""
+"""Tests for Travel Spot Marker backend modules."""
 import os, sys, sqlite3, math, tempfile, unittest
 sys.path.insert(0, os.path.dirname(__file__))
 import database

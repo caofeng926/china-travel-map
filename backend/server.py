@@ -1,4 +1,4 @@
-﻿"""China Travel Map - HTTP API Server"""
+﻿"""Travel Spot Marker - HTTP API Server"""
 import http.server, json, os, sys, gzip, io, time, hashlib, threading, re
 from urllib.parse import urlparse, parse_qs, urlsplit
 from functools import wraps
@@ -102,7 +102,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 mode=g("mode", "driving")
             ))
         elif self.path == "/api/health":
-            self._json({"status":"ok","service":"china-travel-map"})
+            self._json({"status":"ok","service":"travel-spot-marker"})
         elif self.path == "/api/config.js":
             # H-NEW: serve the AMap JS key + security code from env, never from
             # source. Frontend loads this <script> before reading AMAP_KEY.
@@ -131,7 +131,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             # peer. Trimmed to avoid whitespace / extra commas.
             xff = self.headers.get("X-Forwarded-For", "") or ""
             client_ip = xff.split(",")[0].strip() if xff else self.client_address[0]
-            ua = {"User-Agent": "china-travel-map/1.0"}
+            ua = {"User-Agent": "travel-spot-marker/1.0"}
             # --- ipinfo.io ---
             try:
                 url = ("https://ipinfo.io/" + client_ip + "/json") if client_ip else "https://ipinfo.io/json"
@@ -236,8 +236,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._err("unauthorized"); return
             import subprocess as _sp
             cmds = []
-            cmds.append("cd /opt/china-travel-map && git pull 2>&1 || true")
-            cmds.append("systemctl restart china-travel-map 2>&1 || nginx -s reload 2>&1 || true")
+            cmds.append("cd /opt/travel-spot-marker && git pull 2>&1 || true")
+            cmds.append("systemctl restart travel-spot-marker 2>&1 || nginx -s reload 2>&1 || true")
             results = {}
             for i, cmd in enumerate(cmds):
                 try:
@@ -357,7 +357,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(raw)
 
 if __name__ == "__main__":
-    print("China Travel Map Server starting...")
+    print("Travel Spot Marker Server starting...")
     print(f"  Frontend: http://localhost:{PORT}/")
     print(f"  API: http://localhost:{PORT}/api/health")
     init_db()

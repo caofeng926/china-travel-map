@@ -1,4 +1,4 @@
-"""China Travel Map - Database Module"""
+"""Travel Spot Marker - Database Module"""
 import sqlite3, os, math, threading
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "china_travel.db")
 def get_conn():

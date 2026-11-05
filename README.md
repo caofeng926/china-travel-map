@@ -1,4 +1,4 @@
-﻿# 中国旅游地图 (China Travel Map)
+﻿# 旅游地点标记 (Travel Spot Marker)
 
 基于高德地图的全国旅游景点与美食地图。
 

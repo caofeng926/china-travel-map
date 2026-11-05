@@ -87,7 +87,7 @@ def photon_search(name, lat=None, lon=None, limit=5, retries=3):
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers={
-                'User-Agent': 'china-travel-map/1.0 (https://github.com/caofeng926/china-travel-map)',
+                'User-Agent': 'travel-spot-marker/1.0 (https://github.com/caofeng926/china-travel-map)',
                 'Accept': 'application/json'
             })
             with urllib.request.urlopen(req, timeout=15) as resp:
