@@ -32,3 +32,6 @@ server.err.log
 node_modules/
 dist/
 build/
+
+# Local 2FA helper — contains a TOTP secret, never commit it
+tools/gh_2fa_code.py

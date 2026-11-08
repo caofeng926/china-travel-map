@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check Python syntax
+        run: |
+          python -m py_compile backend/server.py
+          python -m py_compile backend/database.py
+          python -m py_compile backend/trip_planner.py
+          python -m py_compile backend/test_api.py
+      - name: Run backend tests
+        run: python backend/test_api.py -v
